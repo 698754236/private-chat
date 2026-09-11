@@ -1,0 +1,1934 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#ededed">
+<title>私人聊天</title>
+<style>
+/* ============================================================
+   1. 设计变量
+   ============================================================ */
+:root{
+  /* 聊天背景：可由 JS 动态覆盖，默认浅灰 */
+  --chat-bg:      #ededed;
+
+  --header-bg:    #ededed;
+  --me-bubble:    #95ec69;
+  --ta-bubble:    #ffffff;
+  --bubble-text:  #111111;
+
+  --accent:       #07c160;
+  --accent-shadow: rgba(7,193,96,.25);
+
+  --text:      #111111;
+  --text-dim:  #888888;
+  --text-mute: #b2b2b2;
+
+  --line:      #e0e0e0;
+  --surface:   #f7f7f7;
+  --border:    #e5e5e5;
+
+  --radius: 6px;
+  --panel-w: 420px;
+  --app-w: 640px;
+  --header-h: 52px;
+
+  --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+          "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ============================================================
+   2. 基础
+   ============================================================ */
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ height:100%; margin:0; }
+body{
+  font-family: var(--font);
+  background: #d9d9d9;
+  color: var(--text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+button{ font-family: inherit; }
+::-webkit-scrollbar{ width:6px; height:6px; }
+::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.14); border-radius:3px; }
+::-webkit-scrollbar-track{ background:transparent; }
+
+/* ============================================================
+   3. 应用骨架
+   ============================================================ */
+#app{
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  max-width: var(--app-w);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--chat-bg);
+  box-shadow: 0 0 40px rgba(0,0,0,.12);
+}
+
+/* ---------- 顶部栏（微信导航栏） ---------- */
+.chat-header{
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(var(--header-h) + env(safe-area-inset-top));
+  padding: 0 6px;
+  padding-top: env(safe-area-inset-top);
+  background: var(--header-bg);
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  z-index: 5;
+}
+
+.head-title{
+  position: absolute;
+  left: 50%;
+  top: calc(50% + env(safe-area-inset-top) / 2);
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  max-width: 55%;
+}
+.head-name{
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.head-status{
+  font-size: 10.5px;
+  color: #6ab04c;
+  margin-top: 1px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: .9;
+}
+.head-status .dot{
+  width: 5px; height: 5px; border-radius: 50%;
+  background: #5ec98a;
+  display: inline-block;
+}
+
+.head-actions{
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.icon-btn{
+  flex: none;
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  border: none; border-radius: 8px;
+  background: transparent;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  color: #2c2c2c;
+  transition: background .15s, transform .15s;
+}
+.icon-btn:hover{ background: rgba(0,0,0,.06); }
+.icon-btn:active{ transform: scale(.9); }
+
+/* 加号按钮 */
+.icon-btn.accent{
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 22px;
+}
+
+/* ---------- 聊天滚动区 ---------- */
+.chat-body{
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 12px 8px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: var(--chat-bg);
+  transition: background .28s ease;
+}
+.messages{ display: flex; flex-direction: column; }
+
+/* ---------- 空状态 ---------- */
+.empty-state{
+  padding: 70px 26px;
+  text-align: center;
+  color: var(--text-mute);
+  font-size: 13.5px;
+  line-height: 1.9;
+}
+.empty-state .big{
+  font-size: 44px;
+  opacity: .6;
+  margin-bottom: 8px;
+}
+
+/* ---------- 日期分隔 ---------- */
+.day-sep{
+  text-align: center;
+  margin: 10px 0 16px;
+}
+.day-sep span{
+  display: inline-block;
+  font-size: 12px;
+  color: #999;
+  background: rgba(0,0,0,.06);
+  padding: 3px 9px;
+  border-radius: 4px;
+}
+
+/* ---------- 消息行 ---------- */
+.msg{
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  animation: msgIn .22s ease-out both;
+}
+.msg.me{ flex-direction: row-reverse; }
+
+@keyframes msgIn{
+  from{ opacity: 0; transform: translateY(7px); }
+  to  { opacity: 1; transform: none; }
+}
+
+/* 头像：微信是圆角方形 */
+.msg .avatar{
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 5px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 21px;
+  line-height: 1;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  overflow: hidden;
+}
+
+/* 气泡 */
+.msg .bubble{
+  position: relative;
+  max-width: 68%;
+  min-width: 34px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--ta-bubble);
+  color: var(--bubble-text);
+  font-size: 15.5px;
+  line-height: 1.48;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+.msg.me .bubble{
+  background: var(--me-bubble);
+}
+
+/* 气泡小尾巴 */
+.msg.ta .bubble::before{
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 12px;
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 6px solid var(--ta-bubble);
+}
+.msg.me .bubble::before{
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 12px;
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid var(--me-bubble);
+}
+
+/* ---------- 正在输入 ---------- */
+.bubble.typing{
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 14px 14px !important;
+}
+.bubble.typing i{
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #c4c4c4;
+  animation: blink 1.4s infinite ease-in-out both;
+}
+.bubble.typing i:nth-child(2){ animation-delay: .18s; }
+.bubble.typing i:nth-child(3){ animation-delay: .36s; }
+@keyframes blink{
+  0%,80%,100%{ opacity:.3; transform: translateY(0); }
+  40%        { opacity:1;  transform: translateY(-3px); }
+}
+
+/* ---------- 底部输入区 ---------- */
+.composer{
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 10px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+
+#input{
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 15.5px;
+  line-height: 1.45;
+  color: var(--text);
+  background: #fff;
+  outline: none;
+  resize: none;
+  max-height: 120px;
+  transition: box-shadow .18s;
+}
+#input::placeholder{ color: #b8b8b8; }
+#input:focus{ box-shadow: 0 0 0 1px rgba(7,193,96,.35); }
+
+.send-btn{
+  flex: none;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 18px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--accent);
+  cursor: pointer;
+  transition: transform .12s, opacity .18s, background .18s;
+  white-space: nowrap;
+}
+.send-btn:hover{ background: #06ad56; }
+.send-btn:active{ transform: scale(.95); opacity: .88; }
+
+/* ============================================================
+   4. 设置面板
+   ============================================================ */
+.panel-mask{
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.35);
+  opacity: 0; pointer-events: none;
+  transition: opacity .28s;
+  z-index: 20;
+}
+.panel-mask.show{ opacity: 1; pointer-events: auto; }
+
+.panel{
+  position: fixed;
+  top: 0; bottom: 0;
+  right: max(0px, calc((100vw - var(--app-w)) / 2));
+  width: min(var(--panel-w), 92vw);
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  box-shadow: -8px 0 36px rgba(0,0,0,.16);
+  transform: translateX(103%);
+  transition: transform .32s cubic-bezier(.4,0,.2,1);
+}
+.panel.show{ transform: none; }
+
+.panel-head{
+  flex: none;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px;
+  padding-top: calc(14px + env(safe-area-inset-top));
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 16px; font-weight: 600;
+}
+
+.tabs{
+  flex: none;
+  display: flex; gap: 6px;
+  padding: 12px 14px 0;
+}
+.tab{
+  flex: 1;
+  padding: 9px 4px;
+  border: none; border-radius: 8px;
+  background: #f2f2f2;
+  color: #888;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: .18s;
+}
+.tab.active{
+  background: var(--accent);
+  color: #fff;
+  font-weight: 500;
+}
+
+.panel-body{
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px 40px;
+  -webkit-overflow-scrolling: touch;
+}
+.tab-pane{ display: none; }
+.tab-pane.active{ display: block; animation: fadeIn .2s ease; }
+@keyframes fadeIn{ from{ opacity:0; transform: translateY(4px); } to{ opacity:1; transform:none; } }
+
+/* ---------- 表单元素 ---------- */
+.hint{
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-dim);
+  margin: 0 0 14px;
+}
+.field{ margin-bottom: 18px; }
+.field > label{
+  display: block;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #777;
+  margin-bottom: 7px;
+}
+input[type=text], input[type=number], textarea{
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: #fafafa;
+  outline: none;
+  transition: border-color .18s, background .18s, box-shadow .18s;
+}
+textarea{ resize: vertical; }
+input:focus, textarea:focus{
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(7,193,96,.1);
+}
+
+.row{ display: flex; gap: 10px; align-items: center; }
+.row.wrap{ flex-wrap: wrap; }
+
+.btn{
+  border: none;
+  border-radius: 10px;
+  padding: 10px 17px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform .13s, background .18s, opacity .18s;
+  white-space: nowrap;
+}
+.btn:active{ transform: scale(.96); }
+.btn.primary{
+  color: #fff;
+  font-weight: 500;
+  background: var(--accent);
+}
+.btn.primary:hover{ background: #06ad56; }
+.btn.ghost{ background: #f2f2f2; color: #555; }
+.btn.ghost:hover{ background: #eaeaea; }
+.btn.danger{ background: #fff1ef; color: #e5533d; }
+.btn.danger:hover{ background: #ffe5e1; }
+
+.count{
+  font-size: 12.5px;
+  color: var(--text-mute);
+  margin-left: auto;
+}
+
+/* 开关行 */
+.switch-row{
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  padding: 12px 13px;
+  background: #fafafa;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+.switch-row input[type=checkbox]{
+  appearance: none; -webkit-appearance: none;
+  width: 44px; height: 26px; flex: none;
+  border-radius: 13px;
+  background: #ddd;
+  position: relative;
+  cursor: pointer;
+  transition: background .22s;
+  margin: 0;
+}
+.switch-row input[type=checkbox]::after{
+  content: '';
+  position: absolute; top: 3px; left: 3px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  transition: transform .22s cubic-bezier(.4,0,.2,1);
+}
+.switch-row input[type=checkbox]:checked{ background: var(--accent); }
+.switch-row input[type=checkbox]:checked::after{ transform: translateX(18px); }
+
+/* ============================================================
+   5. 字卡编辑器 & 列表
+   ============================================================ */
+.card-editor{
+  background: #fafafa;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 13px;
+  margin-bottom: 20px;
+}
+.editor-label{
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 9px;
+}
+#cardInput{
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 13px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+  background: #fff;
+  resize: vertical;
+  min-height: 90px;
+  outline: none;
+  transition: border-color .18s, box-shadow .18s;
+}
+#cardInput::placeholder{ color: #c0c0c0; }
+#cardInput:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(7,193,96,.1);
+}
+.editor-bar{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+.editor-count{
+  font-size: 12.5px;
+  color: var(--text-mute);
+}
+.editor-bar .btn.primary{
+  padding: 11px 20px;
+  font-size: 14.5px;
+}
+
+.list-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #777;
+  font-weight: 500;
+}
+
+.card-item{
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  margin-bottom: 8px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 11px;
+  font-size: 14px;
+  line-height: 1.55;
+  animation: fadeIn .18s ease;
+  transition: border-color .18s, background .18s;
+}
+.card-item:hover{ border-color: #d8f0e2; background: #fff; }
+.card-text{
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.card-del{
+  flex: none;
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border: none; border-radius: 50%;
+  background: #eeeeee;
+  color: #aaa;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .18s, color .18s, transform .18s;
+}
+.card-del:hover{ background: #ffe0db; color: #ff5f4a; }
+.card-del:active{ transform: scale(.88); }
+
+.empty{
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-mute);
+  padding: 28px 10px;
+  line-height: 1.8;
+}
+
+/* ============================================================
+   6. 聊天背景选择器
+   ============================================================ */
+.bg-picker{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.bg-swatch{
+  aspect-ratio: 1 / 1;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.07);
+  transition: transform .15s, box-shadow .18s, border-color .18s;
+  position: relative;
+}
+.bg-swatch:hover{ transform: translateY(-2px); }
+.bg-swatch:active{ transform: scale(.95); }
+.bg-swatch.active{
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.07), 0 0 0 3px rgba(7,193,96,.18);
+}
+
+/* ============================================================
+   7. 本地保存状态提示
+   ============================================================ */
+.save-status{
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 13px;
+  background: #f0f9f4;
+  border: 1px solid #d8f0e2;
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: #3a8a5c;
+  line-height: 1.5;
+  word-break: break-all;
+}
+.save-dot{
+  flex: none;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: savePulse 2.4s infinite;
+}
+@keyframes savePulse{
+  0%  { box-shadow: 0 0 0 0 rgba(7,193,96,.45); }
+  70% { box-shadow: 0 0 0 7px rgba(7,193,96,0); }
+  100%{ box-shadow: 0 0 0 0 rgba(7,193,96,0); }
+}
+
+/* ============================================================
+   8. Toast
+   ============================================================ */
+#toast{
+  position: fixed;
+  left: 50%;
+  bottom: calc(86px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 12px);
+  z-index: 60;
+  padding: 10px 20px;
+  border-radius: 22px;
+  background: rgba(0,0,0,.78);
+  color: #fff;
+  font-size: 13.5px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .24s, transform .24s;
+  max-width: 82vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#toast.show{ opacity: 1; transform: translate(-50%, 0); }
+
+/* ============================================================
+   9. 响应式
+   ============================================================ */
+@media (max-width: 480px){
+  .msg .bubble{ max-width: 72%; font-size: 15px; }
+  .panel{ width: 100vw; right: 0; }
+  #app{ box-shadow: none; }
+  .head-title{ max-width: 48%; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ========== 顶部栏 ========== -->
+  <header class="chat-header">
+    <div class="head-title">
+      <div class="head-name" id="headerName">TA</div>
+      <div class="head-status"><span class="dot"></span><span>在线</span></div>
+    </div>
+    <div class="head-actions">
+      <button class="icon-btn accent" id="openCards" title="添加字卡" aria-label="添加字卡">＋</button>
+      <button class="icon-btn" id="openPanel" title="设置" aria-label="设置">⚙</button>
+    </div>
+  </header>
+
+  <!-- ========== 聊天区 ========== -->
+  <main class="chat-body" id="chatBody">
+    <div class="messages" id="messages"></div>
+    <div class="empty-state" id="emptyState">
+      <div class="big">💬</div>
+      <div>这里只有你们两个人<br>说点什么开始吧</div>
+    </div>
+  </main>
+
+  <!-- ========== 底部输入区 ========== -->
+  <footer class="composer">
+    <textarea id="input" rows="1" placeholder="发消息…" autocomplete="off"></textarea>
+    <button class="send-btn" id="sendBtn">发送</button>
+  </footer>
+</div>
+
+<!-- ========== 设置面板 ========== -->
+<div class="panel-mask" id="panelMask"></div>
+
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="panel-head">
+    <span>设置</span>
+    <button class="icon-btn" id="closePanel" aria-label="关闭">✕</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="cards">添加字卡</button>
+    <button class="tab" data-tab="look">外观</button>
+    <button class="tab" data-tab="data">数据</button>
+  </div>
+
+  <div class="panel-body">
+
+    <!-- ---------- 字卡库 ---------- -->
+    <section class="tab-pane active" data-pane="cards">
+      <p class="hint">
+        在这里写下 TA 可能会说的话。聊天时，TA 的每一句回复都会从下面的字卡里随机抽取。
+      </p>
+
+      <div class="card-editor">
+        <label class="editor-label" for="cardInput">✍️ 写一句话给 TA</label>
+        <textarea id="cardInput" rows="4"
+          placeholder="例如：在的呀，怎么啦？&#10;&#10;（多行输入时，每行保存为一张独立字卡）"></textarea>
+        <div class="editor-bar">
+          <span class="editor-count" id="inputCount">0 字</span>
+          <button class="btn primary" id="addCards">保存到字卡库</button>
+        </div>
+      </div>
+
+      <div class="list-head">
+        <span>已保存的字卡</span>
+        <span class="count" id="cardCount">0 张</span>
+      </div>
+      <div class="card-list" id="cardList"></div>
+    </section>
+
+    <!-- ---------- 外观 ---------- -->
+    <section class="tab-pane" data-pane="look">
+      <div class="field">
+        <label>我的昵称</label>
+        <input type="text" id="setMyName" maxlength="16" placeholder="我">
+      </div>
+
+      <div class="field">
+        <label>我的头像（一个 emoji）</label>
+        <input type="text" id="setMyAvatar" maxlength="8" placeholder="🐱">
+      </div>
+
+      <div class="field">
+        <label>TA 的昵称</label>
+        <input type="text" id="setTaName" maxlength="16" placeholder="TA">
+      </div>
+
+      <div class="field">
+        <label>TA 的头像（一个 emoji）</label>
+        <input type="text" id="setTaAvatar" maxlength="8" placeholder="🐰">
+      </div>
+
+      <div class="field">
+        <label>聊天背景</label>
+        <div class="bg-picker" id="bgPicker"></div>
+        <p class="hint" style="margin:8px 0 0;">选一个你们喜欢的颜色</p>
+      </div>
+
+      <div class="field">
+        <label>回复延迟区间（毫秒）</label>
+        <div class="row">
+          <input type="number" id="setDelayMin" min="0" max="60000" step="100" placeholder="700">
+          <span style="color:var(--text-mute);">~</span>
+          <input type="number" id="setDelayMax" min="0" max="60000" step="100" placeholder="2000">
+        </div>
+        <p class="hint" style="margin:8px 0 0;">数值越大，TA 回得越慢，越像真人。</p>
+      </div>
+
+      <div class="field">
+        <label class="switch-row">
+          <span>显示「正在输入…」</span>
+          <input type="checkbox" id="setTyping">
+        </label>
+      </div>
+
+      <div class="field">
+        <label class="switch-row">
+          <span>均匀抽取（每轮不重复）</span>
+          <input type="checkbox" id="setBag">
+        </label>
+        <p class="hint" style="margin:8px 0 0;">
+          开启后，每张字卡在一轮里只会被抽到一次，用完自动重新洗牌。
+        </p>
+      </div>
+    </section>
+
+    <!-- ---------- 数据 ---------- -->
+    <section class="tab-pane" data-pane="data">
+      <p class="hint">
+        所有数据都保存在<b>这台设备的浏览器本地</b>，不会上传到任何服务器。<br>
+        换设备或清理浏览器数据前，记得先导出备份。
+      </p>
+
+      <div class="field">
+        <label>本地保存状态</label>
+        <div class="save-status">
+          <span class="save-dot"></span>
+          <span id="saveStatusText">所有数据已自动保存到本机</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="row wrap">
+          <button class="btn ghost" id="exportBtn">导出备份</button>
+          <button class="btn ghost" id="importBtn">导入备份</button>
+          <input type="file" id="importFile" accept=".json,application/json" hidden>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="row wrap">
+          <button class="btn danger" id="clearChatBtn">清空聊天记录</button>
+          <button class="btn danger" id="clearCardsBtn">清空字卡库</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>当前数据</label>
+        <div class="hint" id="stats">—</div>
+      </div>
+    </section>
+
+  </div>
+</aside>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+'use strict';
+
+/* ============================================================
+   模块 1 · 基础工具
+   ============================================================ */
+const $  = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/* ============================================================
+   模块 2 · 数据层（本地持久化）
+   ============================================================ */
+const STORAGE_KEY = 'private-chat-v1';
+
+/** 聊天背景预设（可继续扩充） */
+const CHAT_BG_PRESETS = [
+  { id: 'default',  name: '浅灰', color: '#ededed' },
+  { id: 'warm',     name: '暖沙', color: '#f5ede2' },
+  { id: 'pink',     name: '樱粉', color: '#fce8ec' },
+  { id: 'mint',     name: '薄荷', color: '#e6f4ec' },
+  { id: 'sky',      name: '天蓝', color: '#e8f1f8' },
+  { id: 'paper',    name: '米纸', color: '#f7f3ea' },
+  { id: 'lavender', name: '淡紫', color: '#f0ebf7' },
+  { id: 'cream',    name: '奶油', color: '#faf3e0' },
+];
+
+/** 首次进入时的示例字卡，可随意删改 */
+const SEED_CARDS = [
+  '在的呀，怎么啦？',
+  '嘿嘿，我也想你。',
+  '今天过得怎么样呀？',
+  '别太累了，记得好好吃饭。',
+  '嗯嗯，我在听，你说。',
+  '突然就想起你了。',
+  '好啊，都听你的。',
+  '过来，抱一下。',
+  '你说的这个我可太喜欢了。',
+  '晚安，做个好梦。',
+];
+
+/** 完整默认状态 */
+function defaultState() {
+  const now = Date.now();
+  return {
+    version: 1,
+    settings: {
+      myName: '我',
+      taName: 'TA',
+      myAvatar: '🐱',
+      taAvatar: '🐰',
+      chatBg: 'default',        // 聊天背景 id
+      delayMin: 700,
+      delayMax: 2000,
+      typing: true,
+      bagMode: true,
+    },
+    cards: SEED_CARDS.map((text, i) => ({
+      id: uid(), text, enabled: true, createdAt: now + i,
+    })),
+    messages: [],
+    bag: [],
+    lastCardId: null,
+  };
+}
+
+/** 把任意来源的数据（本地存储 / 导入文件）洗成合法 state */
+function normalize(raw) {
+  const d = defaultState();
+  if (!raw || typeof raw !== 'object') return d;
+
+  const out = {
+    version: 1,
+    settings: Object.assign(
+      {},
+      d.settings,
+      (raw.settings && typeof raw.settings === 'object') ? raw.settings : {}
+    ),
+    cards: [],
+    messages: [],
+    bag: [],
+    lastCardId: typeof raw.lastCardId === 'string' ? raw.lastCardId : null,
+  };
+
+  /* 字卡 */
+  if (Array.isArray(raw.cards)) {
+    out.cards = raw.cards.map((c) => {
+      if (typeof c === 'string') {
+        return { id: uid(), text: c, enabled: true, createdAt: Date.now() };
+      }
+      if (c && typeof c.text === 'string') {
+        return {
+          id: c.id || uid(),
+          text: c.text,
+          enabled: c.enabled !== false,
+          createdAt: c.createdAt || Date.now(),
+        };
+      }
+      return null;
+    }).filter((c) => c && c.text.trim());
+  } else {
+    out.cards = d.cards;
+  }
+
+  /* 消息 */
+  if (Array.isArray(raw.messages)) {
+    out.messages = raw.messages
+      .filter((m) => m && typeof m.text === 'string' && (m.role === 'me' || m.role === 'ta'))
+      .map((m) => ({
+        id: m.id || uid(),
+        role: m.role,
+        text: m.text,
+        ts: Number(m.ts) || Date.now(),
+        cardId: m.cardId || null,
+      }));
+  }
+
+  /* 抽取袋 */
+  if (Array.isArray(raw.bag)) {
+    out.bag = raw.bag.filter((x) => typeof x === 'string');
+  }
+
+  /* 聊天背景校验 */
+  if (!CHAT_BG_PRESETS.some((p) => p.id === out.settings.chatBg)) {
+    out.settings.chatBg = 'default';
+  }
+
+  return out;
+}
+
+let state = null;
+let lastSaveAt = 0;
+
+/** 从 localStorage 读取（不存在则返回默认状态） */
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    return normalize(JSON.parse(raw));
+  } catch (e) {
+    console.warn('[私人聊天] 读取本地数据失败，使用默认状态：', e);
+    return defaultState();
+  }
+}
+
+/** 写入 localStorage —— 所有数据变更后都会调用 */
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    lastSaveAt = Date.now();
+    updateSaveStatus();
+  } catch (e) {
+    console.warn('[私人聊天] 本地保存失败：', e);
+    if (e && e.name === 'QuotaExceededError') {
+      toast('本地存储空间不足，请清理聊天记录或字卡');
+    } else {
+      toast('保存失败，数据可能无法保留');
+    }
+  }
+}
+
+/** 静默写入（用于页面关闭/切后台，不更新界面） */
+function flushSave() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    lastSaveAt = Date.now();
+  } catch (e) { /* 忽略 */ }
+}
+
+/* ============================================================
+   模块 3 · 字卡抽取引擎
+   ============================================================ */
+
+/** 当前可用字卡池 */
+function cardPool() {
+  return state.cards.filter((c) => c.enabled !== false && c.text && c.text.trim());
+}
+
+/** 从字卡库中抽一张卡；库为空时返回 null */
+function pickCard() {
+  const pool = cardPool();
+  if (!pool.length) return null;
+
+  /* —— 纯随机模式：避免连续两次抽到同一张 —— */
+  if (!state.settings.bagMode) {
+    let picked = pool[Math.floor(Math.random() * pool.length)];
+    if (pool.length > 1) {
+      let guard = 0;
+      while (picked.id === state.lastCardId && guard++ < 12) {
+        picked = pool[Math.floor(Math.random() * pool.length)];
+      }
+    }
+    state.lastCardId = picked.id;
+    return picked;
+  }
+
+  /* —— 均匀模式：洗牌成「袋」，抽完一轮再洗 —— */
+  const validIds = new Set(pool.map((c) => c.id));
+  let bag = (state.bag || []).filter((id) => validIds.has(id));
+
+  if (!bag.length) {
+    bag = shuffle(pool.map((c) => c.id));
+    if (bag.length > 1 && bag[0] === state.lastCardId) {
+      [bag[0], bag[1]] = [bag[1], bag[0]];
+    }
+  }
+
+  const id = bag.shift();
+  state.bag = bag;
+  state.lastCardId = id;
+  return pool.find((c) => c.id === id) || null;
+}
+
+/* ============================================================
+   模块 4 · DOM 引用
+   ============================================================ */
+const els = {};
+
+function cacheEls() {
+  els.chatBody   = $('#chatBody');
+  els.messages   = $('#messages');
+  els.emptyState = $('#emptyState');
+  els.input      = $('#input');
+  els.sendBtn    = $('#sendBtn');
+
+  els.headerName = $('#headerName');
+
+  els.panel      = $('#panel');
+  els.panelMask  = $('#panelMask');
+  els.openPanel  = $('#openPanel');
+  els.openCards  = $('#openCards');
+  els.closePanel = $('#closePanel');
+
+  els.cardInput  = $('#cardInput');
+  els.cardList   = $('#cardList');
+  els.cardCount  = $('#cardCount');
+  els.inputCount = $('#inputCount');
+  els.addCards   = $('#addCards');
+
+  els.setMyName   = $('#setMyName');
+  els.setMyAvatar = $('#setMyAvatar');
+  els.setTaName   = $('#setTaName');
+  els.setTaAvatar = $('#setTaAvatar');
+  els.setDelayMin = $('#setDelayMin');
+  els.setDelayMax = $('#setDelayMax');
+  els.setTyping   = $('#setTyping');
+  els.setBag      = $('#setBag');
+
+  els.bgPicker       = $('#bgPicker');
+  els.saveStatusText = $('#saveStatusText');
+
+  els.exportBtn     = $('#exportBtn');
+  els.importBtn     = $('#importBtn');
+  els.importFile    = $('#importFile');
+  els.clearChatBtn  = $('#clearChatBtn');
+  els.clearCardsBtn = $('#clearCardsBtn');
+  els.stats         = $('#stats');
+}
+
+/* ============================================================
+   模块 5 · 时间
+   ============================================================ */
+function dayLabel(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const sameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (sameDay(d, now)) return '今天';
+
+  const y = new Date(now);
+  y.setDate(y.getDate() - 1);
+  if (sameDay(d, y)) return '昨天';
+
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return sameYear
+    ? `${d.getMonth() + 1}月${d.getDate()}日`
+    : `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+/* ============================================================
+   模块 6 · 消息渲染
+   ============================================================ */
+let lastRenderedDay = null;
+
+function makeAvatarEl(emoji) {
+  const el = document.createElement('div');
+  el.className = 'avatar';
+  el.textContent = emoji;
+  return el;
+}
+
+function makeMsgEl(msg) {
+  const s = state.settings;
+
+  const row = document.createElement('div');
+  row.className = 'msg ' + (msg.role === 'me' ? 'me' : 'ta');
+  row.dataset.id = msg.id;
+
+  const avatar = makeAvatarEl(msg.role === 'me' ? s.myAvatar : s.taAvatar);
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = msg.text;   // textContent 天然防 XSS
+
+  row.append(avatar, bubble);
+  return row;
+}
+
+/** 追加一条消息（自动插入日期分隔） */
+function appendMsg(msg) {
+  const day = dayLabel(msg.ts);
+  if (day !== lastRenderedDay) {
+    const sep = document.createElement('div');
+    sep.className = 'day-sep';
+    const span = document.createElement('span');
+    span.textContent = day;
+    sep.appendChild(span);
+    els.messages.appendChild(sep);
+    lastRenderedDay = day;
+  }
+  els.messages.appendChild(makeMsgEl(msg));
+}
+
+/** 全量重渲染 */
+function renderAllMessages() {
+  els.messages.innerHTML = '';
+  lastRenderedDay = null;
+  state.messages.forEach(appendMsg);
+  updateEmptyState();
+}
+
+function updateEmptyState() {
+  els.emptyState.style.display = state.messages.length ? 'none' : 'block';
+}
+
+function makeTypingEl() {
+  const row = document.createElement('div');
+  row.className = 'msg ta';
+
+  const avatar = makeAvatarEl(state.settings.taAvatar);
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble typing';
+  bubble.innerHTML = '<i></i><i></i><i></i>';
+
+  row.append(avatar, bubble);
+  return row;
+}
+
+function scrollToBottom(smooth) {
+  const el = els.chatBody;
+  requestAnimationFrame(() => {
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+  });
+}
+
+/* ============================================================
+   模块 7 · 发送 & 回复流程
+   ============================================================ */
+let replyQueue = [];
+let busy = false;
+let typingEl = null;
+
+function sendMessage() {
+  const text = els.input.value.replace(/\s+$/, '');
+  if (!text.trim()) return;
+
+  const msg = { id: uid(), role: 'me', text, ts: Date.now() };
+  state.messages.push(msg);
+  appendMsg(msg);
+  saveState();                   // ← 每次发消息立即落盘
+  updateEmptyState();
+
+  els.input.value = '';
+  autoGrow();
+  els.input.focus();
+  scrollToBottom(true);
+
+  replyQueue.push(1);
+  processReplyQueue();
+}
+
+function processReplyQueue() {
+  if (busy || !replyQueue.length) return;
+
+  /* 字卡库为空 —— 不产生聊天消息，只给界面提示 */
+  if (!cardPool().length) {
+    replyQueue.length = 0;
+    toast('字卡库是空的，点右上角 ＋ 添加几张吧');
+    return;
+  }
+
+  busy = true;
+
+  const s = state.settings;
+  const showTyping = s.typing !== false;
+
+  const min = clamp(Number(s.delayMin) || 0, 0, 60000);
+  const max = clamp(Number(s.delayMax) || 0, min, 60000);
+  const delay = showTyping ? rand(min, max) : 320;
+
+  if (showTyping) {
+    typingEl = makeTypingEl();
+    els.messages.appendChild(typingEl);
+    scrollToBottom(true);
+  }
+
+  window.setTimeout(() => {
+    if (typingEl) { typingEl.remove(); typingEl = null; }
+
+    const card = pickCard();
+    if (!card) {
+      replyQueue.shift();
+      busy = false;
+      processReplyQueue();
+      return;
+    }
+
+    /* 字卡文字直接作为 TA 的消息，不出现任何"抽卡"痕迹 */
+    const taMsg = {
+      id: uid(),
+      role: 'ta',
+      text: card.text,
+      ts: Date.now(),
+      cardId: card.id,
+    };
+
+    state.messages.push(taMsg);
+    appendMsg(taMsg);
+    saveState();                 // ← 每次回复立即落盘
+    updateEmptyState();
+
+    replyQueue.shift();
+    busy = false;
+    scrollToBottom(true);
+
+    processReplyQueue();
+  }, delay);
+}
+
+/* ============================================================
+   模块 8 · 输入框行为
+   ============================================================ */
+function autoGrow() {
+  const el = els.input;
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function bindComposer() {
+  let composing = false;
+
+  els.input.addEventListener('compositionstart', () => { composing = true; });
+  els.input.addEventListener('compositionend',   () => { composing = false; });
+
+  els.input.addEventListener('input', autoGrow);
+
+  els.input.addEventListener('keydown', (e) => {
+    // 回车发送，Shift+回车换行
+    if (e.key === 'Enter' && !e.shiftKey && !composing && !e.isComposing) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  els.sendBtn.addEventListener('click', sendMessage);
+}
+
+/* ============================================================
+   模块 9 · 顶部栏同步
+   ============================================================ */
+function applyHeader() {
+  const s = state.settings;
+  els.headerName.textContent = s.taName || 'TA';
+  document.title = (s.taName || 'TA') + ' · 私人聊天';
+}
+
+/* ============================================================
+   模块 10 · 聊天背景
+   ============================================================ */
+function renderBgPicker() {
+  if (!els.bgPicker) return;
+  const frag = document.createDocumentFragment();
+
+  CHAT_BG_PRESETS.forEach((p) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'bg-swatch';
+    btn.dataset.bg = p.id;
+    btn.title = p.name;
+    btn.setAttribute('aria-label', p.name);
+    btn.style.background = p.color;
+    frag.appendChild(btn);
+  });
+
+  els.bgPicker.replaceChildren(frag);
+}
+
+function applyChatBg() {
+  const id = state.settings.chatBg || 'default';
+  const preset = CHAT_BG_PRESETS.find((p) => p.id === id) || CHAT_BG_PRESETS[0];
+
+  document.documentElement.style.setProperty('--chat-bg', preset.color);
+  // 头部也跟随一点点，让整体更协调
+  document.documentElement.style.setProperty('--header-bg', preset.color);
+
+  if (els.bgPicker) {
+    $$('.bg-swatch', els.bgPicker).forEach((el) => {
+      el.classList.toggle('active', el.dataset.bg === preset.id);
+    });
+  }
+}
+
+/* ============================================================
+   模块 11 · 本地保存状态提示
+   ============================================================ */
+function updateSaveStatus() {
+  if (!els.saveStatusText) return;
+
+  if (!lastSaveAt) {
+    els.saveStatusText.textContent = '所有数据已自动保存到本机';
+    return;
+  }
+
+  const d = new Date(lastSaveAt);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  els.saveStatusText.textContent = '已自动保存到本机 · ' + hh + ':' + mm + ':' + ss;
+}
+
+/** 估算当前数据占用空间 */
+function estimateSize() {
+  try {
+    const bytes = new Blob([JSON.stringify(state)]).size;
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+  } catch (e) {
+    return '—';
+  }
+}
+
+/* ============================================================
+   模块 12 · 字卡库：添加 / 保存 / 读取 / 删除
+   ============================================================ */
+function updateInputCount() {
+  const n = els.cardInput.value.trim().length;
+  els.inputCount.textContent = n ? n + ' 字' : '0 字';
+}
+
+/** 读取字卡库并渲染列表 */
+function renderCards() {
+  els.cardCount.textContent = state.cards.length + ' 张';
+
+  if (!state.cards.length) {
+    els.cardList.innerHTML =
+      '<div class="empty">还没有字卡<br>在上面写下 TA 可能会说的话吧</div>';
+    updateStats();
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+
+  state.cards.forEach((card) => {
+    const item = document.createElement('div');
+    item.className = 'card-item';
+    item.dataset.id = card.id;
+
+    const text = document.createElement('div');
+    text.className = 'card-text';
+    text.textContent = card.text;
+
+    const del = document.createElement('button');
+    del.className = 'card-del';
+    del.type = 'button';
+    del.title = '删除这张字卡';
+    del.setAttribute('aria-label', '删除');
+    del.textContent = '✕';
+
+    item.append(text, del);
+    frag.appendChild(item);
+  });
+
+  els.cardList.replaceChildren(frag);
+  updateStats();
+}
+
+/** 把输入框里的内容保存为字卡（每行一张） */
+function addCardsFromInput() {
+  const raw = els.cardInput.value;
+  const trimmed = raw.trim();
+  if (!trimmed) { toast('先写点内容吧'); return; }
+
+  const lines = trimmed.split('\n').map((s) => s.trim()).filter(Boolean);
+  if (!lines.length) { toast('先写点内容吧'); return; }
+
+  const now = Date.now();
+  const exist = new Set(state.cards.map((c) => c.text));
+
+  let added = 0, skipped = 0;
+  lines.forEach((line, i) => {
+    if (exist.has(line)) { skipped++; return; }
+    exist.add(line);
+    state.cards.push({ id: uid(), text: line, enabled: true, createdAt: now + i });
+    added++;
+  });
+
+  els.cardInput.value = '';
+  updateInputCount();
+
+  saveState();                 // ← 字卡变更立即落盘
+  renderCards();
+
+  if (added && skipped) toast('已保存 ' + added + ' 张，跳过 ' + skipped + ' 张重复的');
+  else if (added)       toast('已保存 ' + added + ' 张字卡');
+  else                  toast('这些内容已经存在啦');
+}
+
+function removeCard(id) {
+  const idx = state.cards.findIndex((c) => c.id === id);
+  if (idx < 0) return;
+  state.cards.splice(idx, 1);
+  state.bag = state.bag.filter((x) => x !== id);
+  saveState();
+  renderCards();
+  toast('已删除');
+}
+
+/* ============================================================
+   模块 13 · 外观设置
+   ============================================================ */
+function syncSettingsUI() {
+  const s = state.settings;
+  els.setMyName.value   = s.myName;
+  els.setMyAvatar.value = s.myAvatar;
+  els.setTaName.value   = s.taName;
+  els.setTaAvatar.value = s.taAvatar;
+  els.setDelayMin.value = s.delayMin;
+  els.setDelayMax.value = s.delayMax;
+  els.setTyping.checked = s.typing !== false;
+  els.setBag.checked    = s.bagMode !== false;
+}
+
+function bindSettingsInputs() {
+  const textPairs = [
+    [els.setMyName, 'myName'],
+    [els.setTaName, 'taName'],
+  ];
+  const avatarPairs = [
+    [els.setMyAvatar, 'myAvatar'],
+    [els.setTaAvatar, 'taAvatar'],
+  ];
+
+  textPairs.forEach(([el, key]) => {
+    el.addEventListener('input', () => {
+      state.settings[key] = el.value;
+      saveState();
+      applyHeader();
+    });
+  });
+
+  avatarPairs.forEach(([el, key]) => {
+    el.addEventListener('input', () => {
+      state.settings[key] = el.value;
+      saveState();
+      applyHeader();
+      renderAllMessages();      // 头像变了，历史消息一起更新
+    });
+  });
+
+  els.setDelayMin.addEventListener('input', () => {
+    state.settings.delayMin = clamp(Number(els.setDelayMin.value) || 0, 0, 60000);
+    saveState();
+  });
+
+  els.setDelayMax.addEventListener('input', () => {
+    state.settings.delayMax = clamp(Number(els.setDelayMax.value) || 0, 0, 60000);
+    saveState();
+  });
+
+  els.setTyping.addEventListener('change', () => {
+    state.settings.typing = els.setTyping.checked;
+    saveState();
+  });
+
+  els.setBag.addEventListener('change', () => {
+    state.settings.bagMode = els.setBag.checked;
+    state.bag = [];
+    saveState();
+  });
+
+  /* 聊天背景选择 */
+  if (els.bgPicker) {
+    els.bgPicker.addEventListener('click', (e) => {
+      const btn = e.target.closest('.bg-swatch');
+      if (!btn) return;
+      const id = btn.dataset.bg;
+      if (!CHAT_BG_PRESETS.some((p) => p.id === id)) return;
+
+      state.settings.chatBg = id;
+      saveState();
+      applyChatBg();
+    });
+  }
+}
+
+/* ============================================================
+   模块 14 · 数据管理
+   ============================================================ */
+function updateStats() {
+  const cards  = state.cards.length;
+  const msgs   = state.messages.length;
+  const myMsgs = state.messages.filter((m) => m.role === 'me').length;
+  const taMsgs = msgs - myMsgs;
+
+  let firstTs = null;
+  if (msgs) firstTs = Math.min.apply(null, state.messages.map((m) => m.ts));
+
+  const since = firstTs ? new Date(firstTs).toLocaleDateString('zh-CN') : '—';
+
+  els.stats.innerHTML =
+    '字卡：<b>' + cards + '</b> 张　·　消息：<b>' + msgs + '</b> 条（我 ' +
+    myMsgs + ' / TA ' + taMsgs + '）<br>' +
+    '最早一条：' + since + '<br>' +
+    '占用空间：<b>' + estimateSize() + '</b>';
+}
+
+function exportData() {
+  const payload = Object.assign({}, state, {
+    app: 'private-chat',
+    exportedAt: new Date().toISOString(),
+  });
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: 'application/json;charset=utf-8',
+  });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = '私人聊天备份-' + stamp + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  toast('备份已导出');
+}
+
+function importData(file) {
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    try {
+      const raw = JSON.parse(String(reader.result));
+      state = normalize(raw);
+      state.bag = [];              // 清空抽取袋，避免脏数据
+      saveState();
+
+      applyHeader();
+      applyChatBg();
+      renderAllMessages();
+      renderCards();
+      syncSettingsUI();
+      updateStats();
+      scrollToBottom(false);
+
+      toast('导入成功');
+    } catch (e) {
+      console.error(e);
+      toast('导入失败：文件格式不正确');
+    }
+  };
+
+  reader.onerror = () => toast('读取文件失败');
+  reader.readAsText(file, 'utf-8');
+}
+
+function clearChat() {
+  if (!state.messages.length) { toast('还没有聊天记录'); return; }
+  if (!confirm('确定要清空全部聊天记录吗？此操作不可撤销。')) return;
+  state.messages = [];
+  saveState();
+  renderAllMessages();
+  updateStats();
+  toast('聊天记录已清空');
+}
+
+function clearCards() {
+  if (!state.cards.length) { toast('字卡库本来就是空的'); return; }
+  if (!confirm('确定要清空字卡库吗？TA 将暂时无法回复。')) return;
+  state.cards = [];
+  state.bag = [];
+  state.lastCardId = null;
+  saveState();
+  renderCards();
+  toast('字卡库已清空');
+}
+
+/* ============================================================
+   模块 15 · 自动保存（页面关闭 / 切后台）
+   ============================================================ */
+function bindAutoSave() {
+  // 页面即将刷新或关闭
+  window.addEventListener('beforeunload', flushSave);
+
+  // 切到后台（手机切 App、锁屏、切标签页）
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      flushSave();
+    } else {
+      updateSaveStatus();
+    }
+  });
+
+  // 页面从缓存恢复（往返缓存）
+  window.addEventListener('pageshow', () => {
+    updateSaveStatus();
+  });
+}
+
+/* ============================================================
+   模块 16 · 设置面板交互
+   ============================================================ */
+let currentTab = 'cards';
+
+function switchTab(name) {
+  currentTab = name;
+  $$('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
+  $$('.tab-pane').forEach((p) => p.classList.toggle('active', p.dataset.pane === name));
+}
+
+function openPanel(tabName) {
+  if (tabName) switchTab(tabName);
+
+  els.panel.classList.add('show');
+  els.panelMask.classList.add('show');
+  els.panel.setAttribute('aria-hidden', 'false');
+
+  if (currentTab === 'cards' && window.matchMedia('(hover: hover)').matches) {
+    setTimeout(() => { try { els.cardInput.focus(); } catch (e) {} }, 340);
+  }
+}
+
+function closePanel() {
+  els.panel.classList.remove('show');
+  els.panelMask.classList.remove('show');
+  els.panel.setAttribute('aria-hidden', 'true');
+}
+
+function bindPanel() {
+  els.openCards.addEventListener('click', () => openPanel('cards'));
+  els.openPanel.addEventListener('click', () => openPanel());
+
+  els.closePanel.addEventListener('click', closePanel);
+  els.panelMask.addEventListener('click', closePanel);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && els.panel.classList.contains('show')) closePanel();
+  });
+
+  $$('.tab').forEach((tab) => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  });
+
+  /* ---- 字卡输入 ---- */
+  els.cardInput.addEventListener('input', updateInputCount);
+  els.addCards.addEventListener('click', addCardsFromInput);
+
+  els.cardInput.addEventListener('keydown', (e) => {
+    // Ctrl / Cmd + Enter 快捷保存
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      addCardsFromInput();
+    }
+  });
+
+  /* ---- 字卡列表删除 ---- */
+  els.cardList.addEventListener('click', (e) => {
+    const btn = e.target.closest('.card-del');
+    if (!btn) return;
+    const item = btn.closest('.card-item');
+    if (item) removeCard(item.dataset.id);
+  });
+
+  /* ---- 数据 ---- */
+  els.exportBtn.addEventListener('click', exportData);
+  els.importBtn.addEventListener('click', () => els.importFile.click());
+
+  els.importFile.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) importData(file);
+    e.target.value = '';
+  });
+
+  els.clearChatBtn.addEventListener('click', clearChat);
+  els.clearCardsBtn.addEventListener('click', clearCards);
+}
+
+/* ============================================================
+   模块 17 · Toast
+   ============================================================ */
+let toastTimer = null;
+
+function toast(message) {
+  const el = $('#toast');
+  el.textContent = message;
+  el.classList.add('show');
+
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+/* ============================================================
+   模块 18 · 启动
+   ============================================================ */
+function init() {
+  cacheEls();
+
+  /* 1. 读取本地数据（没有就用默认状态） */
+  state = loadState();
+
+  /* 2. 首屏渲染 */
+  applyHeader();
+  applyChatBg();
+  renderBgPicker();
+  applyChatBg();          // 渲染完色块后同步高亮
+  renderAllMessages();
+  renderCards();
+  updateInputCount();
+  syncSettingsUI();
+  updateStats();
+
+  /* 3. 首次访问时落盘，确保默认数据也被保存 */
+  saveState();
+
+  /* 4. 绑定交互 */
+  bindComposer();
+  bindPanel();
+  bindSettingsInputs();
+  bindAutoSave();
+
+  autoGrow();
+  scrollToBottom(false);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+/* ============================================================
+   模块 19 · 对外扩展接口
+   ------------------------------------------------------------
+     PrivateChat.addCard('你好呀')     快速加一张字卡
+     PrivateChat.addCards(['a','b'])   批量加字卡
+     PrivateChat.send('...')           以「我」的身份发一条
+     PrivateChat.reply()               让 TA 立即回一条
+     PrivateChat.openCards()           打开添加字卡区域
+     PrivateChat.save()                手动保存（一般不需要）
+     PrivateChat.on('message', fn)     监听新消息
+   ============================================================ */
+const bus = {
+  handlers: {},
+  on(event, fn) {
+    (this.handlers[event] = this.handlers[event] || []).push(fn);
+    return () => this.off(event, fn);
+  },
+  off(event, fn) {
+    const list = this.handlers[event];
+    if (!list) return;
+    const i = list.indexOf(fn);
+    if (i > -1) list.splice(i, 1);
+  },
+  emit(event, payload) {
+    (this.handlers[event] || []).forEach((fn) => {
+      try { fn(payload); } catch (e) { console.error(e); }
+    });
+  },
+};
+
+window.PrivateChat = {
+  get state() { return state; },
+  getState() { return state; },
+  save: saveState,
+
+  addCard(text) {
+    if (!text || !String(text).trim()) return null;
+    const card = { id: uid(), text: String(text).trim(), enabled: true, createdAt: Date.now() };
+    state.cards.push(card);
+    saveState();
+    renderCards();
+    return card;
+  },
+
+  addCards(list) {
+    if (!Array.isArray(list)) return [];
+    return list.map((t) => this.addCard(t)).filter(Boolean);
+  },
+
+  removeCard,
+
+  /** 以「我」的身份发一条消息（不触发 TA 回复） */
+  send(text) {
+    if (!text || !String(text).trim()) return null;
+    const msg = { id: uid(), role: 'me', text: String(text), ts: Date.now() };
+    state.messages.push(msg);
+    appendMsg(msg);
+    saveState();
+    updateEmptyState();
+    scrollToBottom(true);
+    bus.emit('message', msg);
+    return msg;
+  },
+
+  /** 让 TA 立即抽一张字卡回复 */
+  reply() {
+    const card = pickCard();
+    if (!card) { toast('字卡库是空的'); return null; }
+    const msg = {
+      id: uid(),
+      role: 'ta',
+      text: card.text,
+      ts: Date.now(),
+      cardId: card.id,
+    };
+    state.messages.push(msg);
+    appendMsg(msg);
+    saveState();
+    updateEmptyState();
+    scrollToBottom(true);
+    bus.emit('message', msg);
+    return msg;
+  },
+
+  openPanel: (tab) => openPanel(tab || 'cards'),
+  closePanel,
+  openCards: () => openPanel('cards'),
+  toast,
+  on: bus.on.bind(bus),
+  off: bus.off.bind(bus),
+};
+
+})();
+</script>
+</body>
+</html>
