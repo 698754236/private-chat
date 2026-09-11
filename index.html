@@ -4,15 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="theme-color" content="#ededed">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
 <title>私人聊天</title>
 <style>
 /* ============================================================
    1. 设计变量
    ============================================================ */
 :root{
-  /* 聊天背景：可由 JS 动态覆盖，默认浅灰 */
   --chat-bg:      #ededed;
-
   --header-bg:    #ededed;
   --me-bubble:    #95ec69;
   --ta-bubble:    #ffffff;
@@ -39,31 +40,207 @@
 }
 
 /* ============================================================
-   2. 基础
+   2. 基础 & 视口锁定
    ============================================================ */
 *,*::before,*::after{ box-sizing:border-box; }
-html,body{ height:100%; margin:0; }
+
+html{
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 body{
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  position: relative;
   font-family: var(--font);
   background: #d9d9d9;
   color: var(--text);
-  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 button{ font-family: inherit; }
 ::-webkit-scrollbar{ width:6px; height:6px; }
 ::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.14); border-radius:3px; }
 ::-webkit-scrollbar-track{ background:transparent; }
 
+button, .btn, .icon-btn, .tab, .send-btn, .bg-swatch, .card-del{
+  touch-action: manipulation;
+}
+
 /* ============================================================
-   3. 应用骨架
+   3. 开场加载动画（Splash）
+   ============================================================ */
+.splash{
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 38%, #ffffff 0%, #f7f4f0 55%, #efe9e1 100%);
+  opacity: 1;
+  transition: opacity .58s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
+.splash.hide{
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 背景柔光 */
+.splash::before{
+  content: '';
+  position: absolute;
+  width: 320px; height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(7,193,96,.10), transparent 68%);
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: splashGlow 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes splashGlow{
+  0%,100%{ opacity: .55; transform: translate(-50%,-50%) scale(1); }
+  50%    { opacity: 1;   transform: translate(-50%,-50%) scale(1.12); }
+}
+
+.splash-avatar{
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  display: grid;
+  place-items: center;
+  font-size: 38px;
+  line-height: 1;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(140,105,80,.13), 0 2px 7px rgba(140,105,80,.07);
+  animation: splashFloat 2.6s ease-in-out infinite;
+}
+@keyframes splashFloat{
+  0%,100%{ transform: translateY(0); }
+  50%    { transform: translateY(-6px); }
+}
+
+.splash-name{
+  position: relative;
+  margin-top: 17px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c2a28;
+  letter-spacing: .4px;
+  max-width: 70vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.splash-bar{
+  position: relative;
+  margin-top: 27px;
+  width: 148px;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(0,0,0,.07);
+  overflow: hidden;
+}
+.splash-bar-fill{
+  width: 0;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #8ce2ac, #07c160);
+  box-shadow: 0 0 8px rgba(7,193,96,.45);
+  transition: width .3s cubic-bezier(.4,0,.2,1);
+}
+.splash.done .splash-bar-fill{
+  box-shadow: 0 0 12px rgba(7,193,96,.65);
+}
+
+.splash-status{
+  position: relative;
+  margin-top: 14px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #9c948d;
+}
+.splash-text{
+  transition: color .32s ease;
+}
+.splash.done .splash-text{
+  color: #07c160;
+  font-weight: 500;
+}
+
+.splash-dots{
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: opacity .28s ease;
+}
+.splash.done .splash-dots{
+  opacity: 0;
+}
+.splash-dots i{
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #b8b0a8;
+  animation: dotBlink 1.3s infinite ease-in-out both;
+}
+.splash-dots i:nth-child(2){ animation-delay: .16s; }
+.splash-dots i:nth-child(3){ animation-delay: .32s; }
+
+@keyframes dotBlink{
+  0%,80%,100%{ opacity: .25; transform: translateY(0); }
+  40%        { opacity: 1;   transform: translateY(-2px); }
+}
+
+.splash-check{
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #07c160;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  transform: scale(.4);
+  transition: opacity .3s ease, transform .34s cubic-bezier(.34,1.56,.64,1);
+}
+.splash-check.show{
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ============================================================
+   4. 应用骨架
    ============================================================ */
 #app{
   position: relative;
   height: 100vh;
   height: 100dvh;
+  width: 100%;
   max-width: var(--app-w);
+  max-height: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -72,7 +249,7 @@ button{ font-family: inherit; }
   box-shadow: 0 0 40px rgba(0,0,0,.12);
 }
 
-/* ---------- 顶部栏（微信导航栏） ---------- */
+/* ---------- 顶部栏 ---------- */
 .chat-header{
   position: relative;
   flex: none;
@@ -96,7 +273,7 @@ button{ font-family: inherit; }
   flex-direction: column;
   align-items: center;
   pointer-events: none;
-  max-width: 55%;
+  max-width: min(58%, calc(100% - 116px));
 }
 .head-name{
   font-size: 17px;
@@ -131,7 +308,8 @@ button{ font-family: inherit; }
 
 .icon-btn{
   flex: none;
-  width: 38px; height: 38px;
+  width: 42px;
+  height: 42px;
   display: grid; place-items: center;
   border: none; border-radius: 8px;
   background: transparent;
@@ -144,7 +322,6 @@ button{ font-family: inherit; }
 .icon-btn:hover{ background: rgba(0,0,0,.06); }
 .icon-btn:active{ transform: scale(.9); }
 
-/* 加号按钮 */
 .icon-btn.accent{
   color: var(--accent);
   font-weight: 500;
@@ -153,7 +330,10 @@ button{ font-family: inherit; }
 
 /* ---------- 聊天滚动区 ---------- */
 .chat-body{
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 14px 12px 8px;
@@ -162,11 +342,16 @@ button{ font-family: inherit; }
   background: var(--chat-bg);
   transition: background .28s ease;
 }
-.messages{ display: flex; flex-direction: column; }
+.messages{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+}
 
 /* ---------- 空状态 ---------- */
 .empty-state{
-  padding: 70px 26px;
+  padding: 60px 24px;
   text-align: center;
   color: var(--text-mute);
   font-size: 13.5px;
@@ -198,6 +383,8 @@ button{ font-family: inherit; }
   gap: 9px;
   align-items: flex-start;
   margin-bottom: 16px;
+  width: 100%;
+  max-width: 100%;
   animation: msgIn .22s ease-out both;
 }
 .msg.me{ flex-direction: row-reverse; }
@@ -207,7 +394,6 @@ button{ font-family: inherit; }
   to  { opacity: 1; transform: none; }
 }
 
-/* 头像：微信是圆角方形 */
 .msg .avatar{
   flex: none;
   width: 40px;
@@ -223,10 +409,9 @@ button{ font-family: inherit; }
   overflow: hidden;
 }
 
-/* 气泡 */
 .msg .bubble{
   position: relative;
-  max-width: 68%;
+  max-width: min(68%, 520px);
   min-width: 34px;
   padding: 9px 12px;
   border-radius: var(--radius);
@@ -243,7 +428,6 @@ button{ font-family: inherit; }
   background: var(--me-bubble);
 }
 
-/* 气泡小尾巴 */
 .msg.ta .bubble::before{
   content: '';
   position: absolute;
@@ -295,16 +479,18 @@ button{ font-family: inherit; }
   padding-bottom: calc(8px + env(safe-area-inset-bottom));
   background: var(--surface);
   border-top: 1px solid var(--line);
+  width: 100%;
+  max-width: 100%;
 }
 
 #input{
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   border: none;
   border-radius: 6px;
   padding: 9px 12px;
   font-family: inherit;
-  font-size: 15.5px;
+  font-size: 16px;
   line-height: 1.45;
   color: var(--text);
   background: #fff;
@@ -312,6 +498,8 @@ button{ font-family: inherit; }
   resize: none;
   max-height: 120px;
   transition: box-shadow .18s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 #input::placeholder{ color: #b8b8b8; }
 #input:focus{ box-shadow: 0 0 0 1px rgba(7,193,96,.35); }
@@ -320,7 +508,7 @@ button{ font-family: inherit; }
   flex: none;
   border: none;
   border-radius: 6px;
-  padding: 9px 18px;
+  padding: 10px 18px;
   font-size: 15px;
   font-weight: 500;
   color: #fff;
@@ -328,36 +516,54 @@ button{ font-family: inherit; }
   cursor: pointer;
   transition: transform .12s, opacity .18s, background .18s;
   white-space: nowrap;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .send-btn:hover{ background: #06ad56; }
 .send-btn:active{ transform: scale(.95); opacity: .88; }
 
 /* ============================================================
-   4. 设置面板
+   5. 设置面板
    ============================================================ */
 .panel-mask{
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.35);
-  opacity: 0; pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,.42);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
   transition: opacity .28s;
   z-index: 20;
+  -webkit-tap-highlight-color: transparent;
 }
 .panel-mask.show{ opacity: 1; pointer-events: auto; }
 
 .panel{
   position: fixed;
-  top: 0; bottom: 0;
+  top: 0;
+  bottom: 0;
   right: max(0px, calc((100vw - var(--app-w)) / 2));
-  width: min(var(--panel-w), 92vw);
+  width: min(var(--panel-w), 92%);
   z-index: 21;
   display: flex;
   flex-direction: column;
   background: #fff;
   box-shadow: -8px 0 36px rgba(0,0,0,.16);
-  transform: translateX(103%);
-  transition: transform .32s cubic-bezier(.4,0,.2,1);
+
+  transform: translateX(100vw);
+  visibility: hidden;
+  transition: transform .32s cubic-bezier(.4,0,.2,1), visibility .32s;
+
+  overflow: hidden;
 }
-.panel.show{ transform: none; }
+.panel.show{
+  transform: none;
+  visibility: visible;
+}
 
 .panel-head{
   flex: none;
@@ -375,7 +581,7 @@ button{ font-family: inherit; }
 }
 .tab{
   flex: 1;
-  padding: 9px 4px;
+  padding: 10px 4px;
   border: none; border-radius: 8px;
   background: #f2f2f2;
   color: #888;
@@ -390,10 +596,14 @@ button{ font-family: inherit; }
 }
 
 .panel-body{
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px 14px 40px;
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 .tab-pane{ display: none; }
 .tab-pane.active{ display: block; animation: fadeIn .2s ease; }
@@ -405,6 +615,7 @@ button{ font-family: inherit; }
   line-height: 1.7;
   color: var(--text-dim);
   margin: 0 0 14px;
+  overflow-wrap: anywhere;
 }
 .field{ margin-bottom: 18px; }
 .field > label{
@@ -420,12 +631,14 @@ input[type=text], input[type=number], textarea{
   border-radius: 10px;
   padding: 10px 12px;
   font: inherit;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.5;
   color: var(--text);
   background: #fafafa;
   outline: none;
   transition: border-color .18s, background .18s, box-shadow .18s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 textarea{ resize: vertical; }
 input:focus, textarea:focus{
@@ -440,12 +653,14 @@ input:focus, textarea:focus{
 .btn{
   border: none;
   border-radius: 10px;
-  padding: 10px 17px;
+  padding: 11px 17px;
   font: inherit;
   font-size: 14px;
   cursor: pointer;
   transition: transform .13s, background .18s, opacity .18s;
   white-space: nowrap;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .btn:active{ transform: scale(.96); }
 .btn.primary{
@@ -479,8 +694,8 @@ input:focus, textarea:focus{
 }
 .switch-row input[type=checkbox]{
   appearance: none; -webkit-appearance: none;
-  width: 44px; height: 26px; flex: none;
-  border-radius: 13px;
+  width: 46px; height: 28px; flex: none;
+  border-radius: 14px;
   background: #ddd;
   position: relative;
   cursor: pointer;
@@ -490,7 +705,7 @@ input:focus, textarea:focus{
 .switch-row input[type=checkbox]::after{
   content: '';
   position: absolute; top: 3px; left: 3px;
-  width: 20px; height: 20px;
+  width: 22px; height: 22px;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0,0,0,.2);
@@ -500,7 +715,7 @@ input:focus, textarea:focus{
 .switch-row input[type=checkbox]:checked::after{ transform: translateX(18px); }
 
 /* ============================================================
-   5. 字卡编辑器 & 列表
+   6. 字卡编辑器 & 列表
    ============================================================ */
 .card-editor{
   background: #fafafa;
@@ -522,7 +737,7 @@ input:focus, textarea:focus{
   border-radius: 10px;
   padding: 11px 13px;
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.6;
   color: var(--text);
   background: #fff;
@@ -530,6 +745,8 @@ input:focus, textarea:focus{
   min-height: 90px;
   outline: none;
   transition: border-color .18s, box-shadow .18s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 #cardInput::placeholder{ color: #c0c0c0; }
 #cardInput:focus{
@@ -542,14 +759,17 @@ input:focus, textarea:focus{
   justify-content: space-between;
   gap: 10px;
   margin-top: 10px;
+  flex-wrap: wrap;
 }
 .editor-count{
   font-size: 12.5px;
   color: var(--text-mute);
 }
 .editor-bar .btn.primary{
-  padding: 11px 20px;
-  font-size: 14.5px;
+  padding: 12px 20px;
+  font-size: 15px;
+  flex: 1 1 auto;
+  min-width: 140px;
 }
 
 .list-head{
@@ -586,12 +806,12 @@ input:focus, textarea:focus{
 }
 .card-del{
   flex: none;
-  width: 26px; height: 26px;
+  width: 30px; height: 30px;
   display: grid; place-items: center;
   border: none; border-radius: 50%;
   background: #eeeeee;
   color: #aaa;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   transition: background .18s, color .18s, transform .18s;
 }
@@ -607,7 +827,7 @@ input:focus, textarea:focus{
 }
 
 /* ============================================================
-   6. 聊天背景选择器
+   7. 聊天背景选择器
    ============================================================ */
 .bg-picker{
   display: grid;
@@ -632,7 +852,7 @@ input:focus, textarea:focus{
 }
 
 /* ============================================================
-   7. 本地保存状态提示
+   8. 本地保存状态
    ============================================================ */
 .save-status{
   display: flex;
@@ -661,7 +881,7 @@ input:focus, textarea:focus{
 }
 
 /* ============================================================
-   8. Toast
+   9. Toast
    ============================================================ */
 #toast{
   position: fixed;
@@ -678,20 +898,146 @@ input:focus, textarea:focus{
   opacity: 0;
   pointer-events: none;
   transition: opacity .24s, transform .24s;
-  max-width: 82vw;
+  max-width: 86vw;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 #toast.show{ opacity: 1; transform: translate(-50%, 0); }
 
 /* ============================================================
-   9. 响应式
+   10. 手机端适配
    ============================================================ */
-@media (max-width: 480px){
-  .msg .bubble{ max-width: 72%; font-size: 15px; }
-  .panel{ width: 100vw; right: 0; }
-  #app{ box-shadow: none; }
-  .head-title{ max-width: 48%; }
+@media (max-width: 640px){
+  #app{
+    max-width: 100%;
+    box-shadow: none;
+  }
+
+  .chat-body{
+    padding: 12px 10px 6px;
+  }
+
+  .msg .bubble{
+    max-width: 74%;
+    font-size: 16px;
+    padding: 10px 12px;
+    line-height: 1.5;
+  }
+
+  .msg .avatar{
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
+  }
+
+  .head-title{
+    max-width: min(52%, calc(100% - 112px));
+  }
+
+  .composer{
+    padding: 7px 8px;
+    padding-bottom: calc(7px + env(safe-area-inset-bottom));
+    gap: 6px;
+  }
+  #input{
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 16px;
+  }
+  .send-btn{
+    padding: 10px 16px;
+    font-size: 15px;
+    border-radius: 8px;
+  }
+
+  .panel{
+    width: 100%;
+    max-width: 100%;
+    left: 0;
+    right: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .panel-body{
+    padding: 14px 12px 40px;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  }
+
+  .card-item{
+    padding: 12px 12px;
+  }
+  .card-del{
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  .bg-picker{
+    gap: 8px;
+  }
+
+  .icon-btn{
+    width: 44px;
+    height: 44px;
+    font-size: 21px;
+  }
+  .icon-btn.accent{
+    font-size: 24px;
+  }
+
+  #toast{
+    max-width: 88vw;
+    bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+
+  .splash-avatar{
+    width: 68px;
+    height: 68px;
+    font-size: 34px;
+    border-radius: 22px;
+  }
+  .splash-bar{
+    width: 132px;
+  }
+}
+
+@media (max-width: 360px){
+  .msg .bubble{
+    max-width: 70%;
+    font-size: 15.5px;
+  }
+  .msg .avatar{
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+  }
+  .head-name{
+    font-size: 15.5px;
+  }
+  .send-btn{
+    padding: 10px 13px;
+    font-size: 14.5px;
+  }
+  .tab{
+    font-size: 13px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px){
+  #app{
+    box-shadow: 0 0 50px rgba(0,0,0,.14);
+  }
+}
+
+@media (hover: none){
+  .icon-btn:hover{ background: transparent; }
+  .btn.ghost:hover{ background: #f2f2f2; }
+  .btn.primary:hover{ background: var(--accent); }
+  .card-item:hover{ border-color: #f0f0f0; background: #fafafa; }
+  .card-del:hover{ background: #eeeeee; color: #aaa; }
+  .bg-swatch:hover{ transform: none; }
+  .send-btn:hover{ background: var(--accent); }
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -701,8 +1047,23 @@ input:focus, textarea:focus{
 </head>
 <body>
 
+<!-- ========== 开场加载动画 ========== -->
+<div class="splash" id="splash">
+  <div class="splash-avatar" id="splashAvatar">🐰</div>
+  <div class="splash-name" id="splashName">TA</div>
+
+  <div class="splash-bar">
+    <div class="splash-bar-fill" id="splashBar"></div>
+  </div>
+
+  <div class="splash-status">
+    <span class="splash-text" id="splashText">正在连接</span>
+    <span class="splash-dots" id="splashDots"><i></i><i></i><i></i></span>
+    <span class="splash-check" id="splashCheck">✓</span>
+  </div>
+</div>
+
 <div id="app">
-  <!-- ========== 顶部栏 ========== -->
   <header class="chat-header">
     <div class="head-title">
       <div class="head-name" id="headerName">TA</div>
@@ -714,7 +1075,6 @@ input:focus, textarea:focus{
     </div>
   </header>
 
-  <!-- ========== 聊天区 ========== -->
   <main class="chat-body" id="chatBody">
     <div class="messages" id="messages"></div>
     <div class="empty-state" id="emptyState">
@@ -723,14 +1083,13 @@ input:focus, textarea:focus{
     </div>
   </main>
 
-  <!-- ========== 底部输入区 ========== -->
   <footer class="composer">
-    <textarea id="input" rows="1" placeholder="发消息…" autocomplete="off"></textarea>
+    <textarea id="input" rows="1" placeholder="发消息…" autocomplete="off"
+      autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
     <button class="send-btn" id="sendBtn">发送</button>
   </footer>
 </div>
 
-<!-- ========== 设置面板 ========== -->
 <div class="panel-mask" id="panelMask"></div>
 
 <aside class="panel" id="panel" aria-hidden="true">
@@ -747,7 +1106,6 @@ input:focus, textarea:focus{
 
   <div class="panel-body">
 
-    <!-- ---------- 字卡库 ---------- -->
     <section class="tab-pane active" data-pane="cards">
       <p class="hint">
         在这里写下 TA 可能会说的话。聊天时，TA 的每一句回复都会从下面的字卡里随机抽取。
@@ -756,7 +1114,8 @@ input:focus, textarea:focus{
       <div class="card-editor">
         <label class="editor-label" for="cardInput">✍️ 写一句话给 TA</label>
         <textarea id="cardInput" rows="4"
-          placeholder="例如：在的呀，怎么啦？&#10;&#10;（多行输入时，每行保存为一张独立字卡）"></textarea>
+          placeholder="例如：在的呀，怎么啦？&#10;&#10;（多行输入时，每行保存为一张独立字卡）"
+          autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
         <div class="editor-bar">
           <span class="editor-count" id="inputCount">0 字</span>
           <button class="btn primary" id="addCards">保存到字卡库</button>
@@ -770,7 +1129,6 @@ input:focus, textarea:focus{
       <div class="card-list" id="cardList"></div>
     </section>
 
-    <!-- ---------- 外观 ---------- -->
     <section class="tab-pane" data-pane="look">
       <div class="field">
         <label>我的昵称</label>
@@ -826,7 +1184,6 @@ input:focus, textarea:focus{
       </div>
     </section>
 
-    <!-- ---------- 数据 ---------- -->
     <section class="tab-pane" data-pane="data">
       <p class="hint">
         所有数据都保存在<b>这台设备的浏览器本地</b>，不会上传到任何服务器。<br>
@@ -890,11 +1247,10 @@ function shuffle(arr) {
 }
 
 /* ============================================================
-   模块 2 · 数据层（本地持久化）
+   模块 2 · 数据层
    ============================================================ */
 const STORAGE_KEY = 'private-chat-v1';
 
-/** 聊天背景预设（可继续扩充） */
 const CHAT_BG_PRESETS = [
   { id: 'default',  name: '浅灰', color: '#ededed' },
   { id: 'warm',     name: '暖沙', color: '#f5ede2' },
@@ -906,7 +1262,6 @@ const CHAT_BG_PRESETS = [
   { id: 'cream',    name: '奶油', color: '#faf3e0' },
 ];
 
-/** 首次进入时的示例字卡，可随意删改 */
 const SEED_CARDS = [
   '在的呀，怎么啦？',
   '嘿嘿，我也想你。',
@@ -920,7 +1275,6 @@ const SEED_CARDS = [
   '晚安，做个好梦。',
 ];
 
-/** 完整默认状态 */
 function defaultState() {
   const now = Date.now();
   return {
@@ -930,7 +1284,7 @@ function defaultState() {
       taName: 'TA',
       myAvatar: '🐱',
       taAvatar: '🐰',
-      chatBg: 'default',        // 聊天背景 id
+      chatBg: 'default',
       delayMin: 700,
       delayMax: 2000,
       typing: true,
@@ -945,7 +1299,6 @@ function defaultState() {
   };
 }
 
-/** 把任意来源的数据（本地存储 / 导入文件）洗成合法 state */
 function normalize(raw) {
   const d = defaultState();
   if (!raw || typeof raw !== 'object') return d;
@@ -963,7 +1316,6 @@ function normalize(raw) {
     lastCardId: typeof raw.lastCardId === 'string' ? raw.lastCardId : null,
   };
 
-  /* 字卡 */
   if (Array.isArray(raw.cards)) {
     out.cards = raw.cards.map((c) => {
       if (typeof c === 'string') {
@@ -983,7 +1335,6 @@ function normalize(raw) {
     out.cards = d.cards;
   }
 
-  /* 消息 */
   if (Array.isArray(raw.messages)) {
     out.messages = raw.messages
       .filter((m) => m && typeof m.text === 'string' && (m.role === 'me' || m.role === 'ta'))
@@ -996,12 +1347,10 @@ function normalize(raw) {
       }));
   }
 
-  /* 抽取袋 */
   if (Array.isArray(raw.bag)) {
     out.bag = raw.bag.filter((x) => typeof x === 'string');
   }
 
-  /* 聊天背景校验 */
   if (!CHAT_BG_PRESETS.some((p) => p.id === out.settings.chatBg)) {
     out.settings.chatBg = 'default';
   }
@@ -1012,7 +1361,6 @@ function normalize(raw) {
 let state = null;
 let lastSaveAt = 0;
 
-/** 从 localStorage 读取（不存在则返回默认状态） */
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -1024,7 +1372,6 @@ function loadState() {
   }
 }
 
-/** 写入 localStorage —— 所有数据变更后都会调用 */
 function saveState() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -1040,7 +1387,6 @@ function saveState() {
   }
 }
 
-/** 静默写入（用于页面关闭/切后台，不更新界面） */
 function flushSave() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -1051,18 +1397,14 @@ function flushSave() {
 /* ============================================================
    模块 3 · 字卡抽取引擎
    ============================================================ */
-
-/** 当前可用字卡池 */
 function cardPool() {
   return state.cards.filter((c) => c.enabled !== false && c.text && c.text.trim());
 }
 
-/** 从字卡库中抽一张卡；库为空时返回 null */
 function pickCard() {
   const pool = cardPool();
   if (!pool.length) return null;
 
-  /* —— 纯随机模式：避免连续两次抽到同一张 —— */
   if (!state.settings.bagMode) {
     let picked = pool[Math.floor(Math.random() * pool.length)];
     if (pool.length > 1) {
@@ -1075,7 +1417,6 @@ function pickCard() {
     return picked;
   }
 
-  /* —— 均匀模式：洗牌成「袋」，抽完一轮再洗 —— */
   const validIds = new Set(pool.map((c) => c.id));
   let bag = (state.bag || []).filter((id) => validIds.has(id));
 
@@ -1098,6 +1439,7 @@ function pickCard() {
 const els = {};
 
 function cacheEls() {
+  els.app        = $('#app');
   els.chatBody   = $('#chatBody');
   els.messages   = $('#messages');
   els.emptyState = $('#emptyState');
@@ -1136,6 +1478,15 @@ function cacheEls() {
   els.clearChatBtn  = $('#clearChatBtn');
   els.clearCardsBtn = $('#clearCardsBtn');
   els.stats         = $('#stats');
+
+  /* Splash */
+  els.splash       = $('#splash');
+  els.splashAvatar = $('#splashAvatar');
+  els.splashName   = $('#splashName');
+  els.splashBar    = $('#splashBar');
+  els.splashText   = $('#splashText');
+  els.splashDots   = $('#splashDots');
+  els.splashCheck  = $('#splashCheck');
 }
 
 /* ============================================================
@@ -1184,13 +1535,12 @@ function makeMsgEl(msg) {
 
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
-  bubble.textContent = msg.text;   // textContent 天然防 XSS
+  bubble.textContent = msg.text;
 
   row.append(avatar, bubble);
   return row;
 }
 
-/** 追加一条消息（自动插入日期分隔） */
 function appendMsg(msg) {
   const day = dayLabel(msg.ts);
   if (day !== lastRenderedDay) {
@@ -1205,7 +1555,6 @@ function appendMsg(msg) {
   els.messages.appendChild(makeMsgEl(msg));
 }
 
-/** 全量重渲染 */
 function renderAllMessages() {
   els.messages.innerHTML = '';
   lastRenderedDay = null;
@@ -1239,7 +1588,7 @@ function scrollToBottom(smooth) {
 }
 
 /* ============================================================
-   模块 7 · 发送 & 回复流程
+   模块 7 · 发送 & 回复
    ============================================================ */
 let replyQueue = [];
 let busy = false;
@@ -1252,12 +1601,11 @@ function sendMessage() {
   const msg = { id: uid(), role: 'me', text, ts: Date.now() };
   state.messages.push(msg);
   appendMsg(msg);
-  saveState();                   // ← 每次发消息立即落盘
+  saveState();
   updateEmptyState();
 
   els.input.value = '';
   autoGrow();
-  els.input.focus();
   scrollToBottom(true);
 
   replyQueue.push(1);
@@ -1267,7 +1615,6 @@ function sendMessage() {
 function processReplyQueue() {
   if (busy || !replyQueue.length) return;
 
-  /* 字卡库为空 —— 不产生聊天消息，只给界面提示 */
   if (!cardPool().length) {
     replyQueue.length = 0;
     toast('字卡库是空的，点右上角 ＋ 添加几张吧');
@@ -1300,7 +1647,6 @@ function processReplyQueue() {
       return;
     }
 
-    /* 字卡文字直接作为 TA 的消息，不出现任何"抽卡"痕迹 */
     const taMsg = {
       id: uid(),
       role: 'ta',
@@ -1311,7 +1657,7 @@ function processReplyQueue() {
 
     state.messages.push(taMsg);
     appendMsg(taMsg);
-    saveState();                 // ← 每次回复立即落盘
+    saveState();
     updateEmptyState();
 
     replyQueue.shift();
@@ -1323,7 +1669,7 @@ function processReplyQueue() {
 }
 
 /* ============================================================
-   模块 8 · 输入框行为
+   模块 8 · 输入框
    ============================================================ */
 function autoGrow() {
   const el = els.input;
@@ -1340,7 +1686,6 @@ function bindComposer() {
   els.input.addEventListener('input', autoGrow);
 
   els.input.addEventListener('keydown', (e) => {
-    // 回车发送，Shift+回车换行
     if (e.key === 'Enter' && !e.shiftKey && !composing && !e.isComposing) {
       e.preventDefault();
       sendMessage();
@@ -1348,6 +1693,14 @@ function bindComposer() {
   });
 
   els.sendBtn.addEventListener('click', sendMessage);
+
+  els.input.addEventListener('focus', () => {
+    const el = els.chatBody;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (nearBottom) {
+      setTimeout(() => scrollToBottom(false), 260);
+    }
+  });
 }
 
 /* ============================================================
@@ -1385,7 +1738,6 @@ function applyChatBg() {
   const preset = CHAT_BG_PRESETS.find((p) => p.id === id) || CHAT_BG_PRESETS[0];
 
   document.documentElement.style.setProperty('--chat-bg', preset.color);
-  // 头部也跟随一点点，让整体更协调
   document.documentElement.style.setProperty('--header-bg', preset.color);
 
   if (els.bgPicker) {
@@ -1396,7 +1748,7 @@ function applyChatBg() {
 }
 
 /* ============================================================
-   模块 11 · 本地保存状态提示
+   模块 11 · 保存状态提示
    ============================================================ */
 function updateSaveStatus() {
   if (!els.saveStatusText) return;
@@ -1413,7 +1765,6 @@ function updateSaveStatus() {
   els.saveStatusText.textContent = '已自动保存到本机 · ' + hh + ':' + mm + ':' + ss;
 }
 
-/** 估算当前数据占用空间 */
 function estimateSize() {
   try {
     const bytes = new Blob([JSON.stringify(state)]).size;
@@ -1426,14 +1777,13 @@ function estimateSize() {
 }
 
 /* ============================================================
-   模块 12 · 字卡库：添加 / 保存 / 读取 / 删除
+   模块 12 · 字卡库
    ============================================================ */
 function updateInputCount() {
   const n = els.cardInput.value.trim().length;
   els.inputCount.textContent = n ? n + ' 字' : '0 字';
 }
 
-/** 读取字卡库并渲染列表 */
 function renderCards() {
   els.cardCount.textContent = state.cards.length + ' 张';
 
@@ -1470,7 +1820,6 @@ function renderCards() {
   updateStats();
 }
 
-/** 把输入框里的内容保存为字卡（每行一张） */
 function addCardsFromInput() {
   const raw = els.cardInput.value;
   const trimmed = raw.trim();
@@ -1493,7 +1842,7 @@ function addCardsFromInput() {
   els.cardInput.value = '';
   updateInputCount();
 
-  saveState();                 // ← 字卡变更立即落盘
+  saveState();
   renderCards();
 
   if (added && skipped) toast('已保存 ' + added + ' 张，跳过 ' + skipped + ' 张重复的');
@@ -1549,7 +1898,7 @@ function bindSettingsInputs() {
       state.settings[key] = el.value;
       saveState();
       applyHeader();
-      renderAllMessages();      // 头像变了，历史消息一起更新
+      renderAllMessages();
     });
   });
 
@@ -1574,7 +1923,6 @@ function bindSettingsInputs() {
     saveState();
   });
 
-  /* 聊天背景选择 */
   if (els.bgPicker) {
     els.bgPicker.addEventListener('click', (e) => {
       const btn = e.target.closest('.bg-swatch');
@@ -1640,7 +1988,7 @@ function importData(file) {
     try {
       const raw = JSON.parse(String(reader.result));
       state = normalize(raw);
-      state.bag = [];              // 清空抽取袋，避免脏数据
+      state.bag = [];
       saveState();
 
       applyHeader();
@@ -1684,13 +2032,11 @@ function clearCards() {
 }
 
 /* ============================================================
-   模块 15 · 自动保存（页面关闭 / 切后台）
+   模块 15 · 自动保存
    ============================================================ */
 function bindAutoSave() {
-  // 页面即将刷新或关闭
   window.addEventListener('beforeunload', flushSave);
 
-  // 切到后台（手机切 App、锁屏、切标签页）
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
       flushSave();
@@ -1699,14 +2045,143 @@ function bindAutoSave() {
     }
   });
 
-  // 页面从缓存恢复（往返缓存）
   window.addEventListener('pageshow', () => {
     updateSaveStatus();
   });
+
+  window.addEventListener('pagehide', flushSave);
 }
 
 /* ============================================================
-   模块 16 · 设置面板交互
+   模块 16 · 视口适配（键盘不遮挡发送区）
+   ============================================================ */
+function setupViewport() {
+  const app = els.app;
+  const panel = els.panel;
+  if (!app) return;
+
+  const vv = window.visualViewport;
+  if (!vv) return;
+
+  let rafId = 0;
+
+  function apply() {
+    rafId = 0;
+
+    const h = Math.round(vv.height);
+    if (h > 0) {
+      app.style.height = h + 'px';
+      if (panel) panel.style.height = h + 'px';
+    }
+
+    if (window.scrollY !== 0) {
+      window.scrollTo(0, 0);
+    }
+  }
+
+  function schedule() {
+    if (rafId) return;
+    rafId = requestAnimationFrame(apply);
+  }
+
+  vv.addEventListener('resize', schedule);
+  vv.addEventListener('scroll', schedule);
+  window.addEventListener('orientationchange', () => {
+    schedule();
+    setTimeout(schedule, 80);
+    setTimeout(schedule, 320);
+  });
+
+  schedule();
+}
+
+/* ============================================================
+   模块 17 · 开场加载动画
+   ------------------------------------------------------------
+   流程：进度条增长 → 到 100% → 显示「连接成功」+ 勾
+        → 短暂停留 → 整体淡出 → 从文档中移除
+   ============================================================ */
+function runSplash() {
+  const splash = els.splash;
+  if (!splash) return;
+
+  /* 已读取到设置，同步头像与昵称到加载页 */
+  if (state && state.settings) {
+    if (els.splashAvatar) els.splashAvatar.textContent = state.settings.taAvatar || '🐰';
+    if (els.splashName)   els.splashName.textContent   = state.settings.taName || 'TA';
+  }
+
+  const MIN_SHOW   = 1400;   // 最短展示时长（毫秒）
+  const DONE_HOLD  = 700;    // 「连接成功」停留时长
+  const FADE_OUT   = 580;    // 淡出时长
+  const MAX_WAIT   = 4200;   // 兜底：最长等待
+
+  const startAt = Date.now();
+  let progress = 0;
+  let finished = false;
+
+  /* 进度条增长：先快后慢，像真实加载 */
+  const tick = window.setInterval(() => {
+    if (finished) return;
+
+    let step;
+    if (progress < 55)      step = Math.random() * 11 + 7;    // 快速起步
+    else if (progress < 82) step = Math.random() * 5 + 2;     // 平稳推进
+    else                    step = Math.random() * 1.6 + 0.4; // 逐渐收尾
+
+    progress = Math.min(progress + step, 93);
+    if (els.splashBar) els.splashBar.style.width = progress + '%';
+  }, 95);
+
+  function finish() {
+    if (finished) return;
+    finished = true;
+
+    window.clearInterval(tick);
+
+    /* 1. 补满进度条 */
+    if (els.splashBar) els.splashBar.style.width = '100%';
+    splash.classList.add('done');
+
+    /* 2. 切换成「连接成功」 */
+    window.setTimeout(() => {
+      if (els.splashText)  els.splashText.textContent = '连接成功';
+      if (els.splashCheck) els.splashCheck.classList.add('show');
+    }, 210);
+
+    /* 3. 淡出并移除 */
+    window.setTimeout(() => {
+      splash.classList.add('hide');
+
+      window.setTimeout(() => {
+        splash.style.display = 'none';
+        // 彻底移除，避免之后影响性能与无障碍
+        if (splash.parentNode) splash.parentNode.removeChild(splash);
+      }, FADE_OUT);
+
+    }, DONE_HOLD);
+  }
+
+  /* 最短展示时长 + 页面加载完成，两者取较晚 */
+  function scheduleFinish() {
+    const elapsed = Date.now() - startAt;
+    window.setTimeout(finish, Math.max(0, MIN_SHOW - elapsed));
+  }
+
+  if (document.readyState === 'complete') {
+    scheduleFinish();
+  } else {
+    window.addEventListener('load', scheduleFinish, { once: true });
+  }
+
+  /* 兜底：无论加载多慢，都不会无限等待 */
+  window.setTimeout(() => {
+    if (!finished) finish();
+  }, MAX_WAIT);
+}
+
+/* ============================================================
+   模块 18 · 设置面板交互
    ============================================================ */
 let currentTab = 'cards';
 
@@ -1723,7 +2198,7 @@ function openPanel(tabName) {
   els.panelMask.classList.add('show');
   els.panel.setAttribute('aria-hidden', 'false');
 
-  if (currentTab === 'cards' && window.matchMedia('(hover: hover)').matches) {
+  if (currentTab === 'cards' && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
     setTimeout(() => { try { els.cardInput.focus(); } catch (e) {} }, 340);
   }
 }
@@ -1749,19 +2224,16 @@ function bindPanel() {
     tab.addEventListener('click', () => switchTab(tab.dataset.tab));
   });
 
-  /* ---- 字卡输入 ---- */
   els.cardInput.addEventListener('input', updateInputCount);
   els.addCards.addEventListener('click', addCardsFromInput);
 
   els.cardInput.addEventListener('keydown', (e) => {
-    // Ctrl / Cmd + Enter 快捷保存
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       addCardsFromInput();
     }
   });
 
-  /* ---- 字卡列表删除 ---- */
   els.cardList.addEventListener('click', (e) => {
     const btn = e.target.closest('.card-del');
     if (!btn) return;
@@ -1769,7 +2241,6 @@ function bindPanel() {
     if (item) removeCard(item.dataset.id);
   });
 
-  /* ---- 数据 ---- */
   els.exportBtn.addEventListener('click', exportData);
   els.importBtn.addEventListener('click', () => els.importFile.click());
 
@@ -1784,7 +2255,7 @@ function bindPanel() {
 }
 
 /* ============================================================
-   模块 17 · Toast
+   模块 19 · Toast
    ============================================================ */
 let toastTimer = null;
 
@@ -1798,36 +2269,63 @@ function toast(message) {
 }
 
 /* ============================================================
-   模块 18 · 启动
+   模块 20 · 窗口尺寸变化时保持消息不错位
+   ============================================================ */
+let resizeTimer = null;
+function bindResizeReflow() {
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      const el = els.chatBody;
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 140;
+      if (nearBottom) scrollToBottom(false);
+    }, 120);
+  });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const el = els.chatBody;
+        const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
+        if (nearBottom) scrollToBottom(false);
+      }, 120);
+    });
+  }
+}
+
+/* ============================================================
+   模块 21 · 启动
    ============================================================ */
 function init() {
   cacheEls();
 
-  /* 1. 读取本地数据（没有就用默认状态） */
+  setupViewport();
+
   state = loadState();
 
-  /* 2. 首屏渲染 */
   applyHeader();
-  applyChatBg();
   renderBgPicker();
-  applyChatBg();          // 渲染完色块后同步高亮
+  applyChatBg();
   renderAllMessages();
   renderCards();
   updateInputCount();
   syncSettingsUI();
   updateStats();
 
-  /* 3. 首次访问时落盘，确保默认数据也被保存 */
   saveState();
 
-  /* 4. 绑定交互 */
   bindComposer();
   bindPanel();
   bindSettingsInputs();
   bindAutoSave();
+  bindResizeReflow();
 
   autoGrow();
   scrollToBottom(false);
+
+  /* 界面已就绪，开始播放开场动画 */
+  runSplash();
 }
 
 if (document.readyState === 'loading') {
@@ -1837,15 +2335,7 @@ if (document.readyState === 'loading') {
 }
 
 /* ============================================================
-   模块 19 · 对外扩展接口
-   ------------------------------------------------------------
-     PrivateChat.addCard('你好呀')     快速加一张字卡
-     PrivateChat.addCards(['a','b'])   批量加字卡
-     PrivateChat.send('...')           以「我」的身份发一条
-     PrivateChat.reply()               让 TA 立即回一条
-     PrivateChat.openCards()           打开添加字卡区域
-     PrivateChat.save()                手动保存（一般不需要）
-     PrivateChat.on('message', fn)     监听新消息
+   模块 22 · 对外扩展接口
    ============================================================ */
 const bus = {
   handlers: {},
@@ -1887,7 +2377,6 @@ window.PrivateChat = {
 
   removeCard,
 
-  /** 以「我」的身份发一条消息（不触发 TA 回复） */
   send(text) {
     if (!text || !String(text).trim()) return null;
     const msg = { id: uid(), role: 'me', text: String(text), ts: Date.now() };
@@ -1900,7 +2389,6 @@ window.PrivateChat = {
     return msg;
   },
 
-  /** 让 TA 立即抽一张字卡回复 */
   reply() {
     const card = pickCard();
     if (!card) { toast('字卡库是空的'); return null; }
