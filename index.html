@@ -3923,72 +3923,97 @@ function bindCharPanel(){
 }
 
 /* ============================================================
-   字卡包导入
-   ============================================================ */
-/* ============================================================
    模块 15 · 字卡包导入（支持分组格式）
    ------------------------------------------------------------
-   优先识别带分组的结构：
+   优先识别分组结构：
      { "customReplyGroups": [ { "name": "...", "items": [...] } ] }
-     { "groups": [ { "name": "...", "items": [...] } ] }
-     { "replyGroups": [ { "name": "...", "items": [...] } ] }
-   每个分组独立导入，分组名和字卡内容都保留。
-   若不是分组结构，则回退到扁平提取（文本全导入到当前分组）。
+   每个分组独立导入，分组名和字卡全部保留。
+   不是分组结构时，回退到扁平提取。
    ============================================================ */
 
 /** 尝试按分组结构解析；找到分组返回 [{name, items}]，否则返回 null */
 function parseCardPackWithGroups(raw){
   if(!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
 
+  /* 找出承载分组的数组（支持多种常见字段名） */
+  let source = null;
+  const WRAPPERS = [
+    'customReplyGroups', 'customRepliesGroups', 'replyGroups', 'reply_groups',
+    'groups', 'groupList', 'group_list', 'cardGroups', 'card_groups',
+  ];
+  for(let i=0; i<WRAPPERS.length; i++){
+    const k = WRAPPERS[i];
+    if(Array.isArray(raw[k])){ source = raw[k]; break; }
+  }
+  if(!source) return null;
+
   const pickItems = (arr) => {
     const out = [];
     if(!Array.isArray(arr)) return out;
     arr.forEach(it=>{
+      let t = '';
       if(typeof it === 'string'){
-        const t = it.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim();
-        if(t) out.push(t);
-      } else if(it && typeof it === 'object' && typeof it.text === 'string'){
-        const t = it.text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim();
-        if(t) out.push(t);
+        t = it;
+      } else if(it && typeof it === 'object'){
+        if(typeof it.text === 'string') t = it.text;
+        else if(typeof it.content === 'string') t = it.content;
+        else if(typeof it.value === 'string') t = it.value;
       }
+      t = t.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim();
+      if(t) out.push(t);
     });
     return out;
   };
 
   const groups = [];
+  source.forEach(g=>{
+    if(!g || typeof g !== 'object') return;
 
-  /* 找出承载分组的数组 */
-  let source = null;
-  if(Array.isArray(raw.customReplyGroups)) source = raw.customReplyGroups;
-  else if(Array.isArray(raw.groups))       source = raw.groups;
-  else if(Array.isArray(raw.replyGroups))  source = raw.replyGroups;
-  else if(Array.isArray(raw.reply_groups)) source = raw.reply_groups;
+    /* 跳过明确禁用的分组（原数据里 disabled: true） */
+    if(g.disabled === true || g.disabled === 'true') return;
 
-  if(source){
-    source.forEach(g=>{
-      if(!g || typeof g !== 'object') return;
-      /* 跳过被禁用的分组 */
-      if(g.disabled === true) return;
+    /* 分组名：支持多种字段 */
+    let name = g.name;
+    if(typeof name !== 'string') name = g.title;
+    if(typeof name !== 'string') name = g.label;
+    if(typeof name !== 'string') name = g.group;
+    if(typeof name !== 'string') name = g.groupName;
+    if(typeof name !== 'string') name = '未命名分组';
 
-      const name = normalizeGroupName(g.name || g.title || g.label || g.group);
-      const arr  = g.items || g.cards || g.replies || g.list || g.texts;
-      const items = pickItems(arr);
+    /* 成员数组：支持多种字段 */
+    let arr = g.items;
+    if(!Array.isArray(arr)) arr = g.cards;
+    if(!Array.isArray(arr)) arr = g.replies;
+    if(!Array.isArray(arr)) arr = g.list;
+    if(!Array.isArray(arr)) arr = g.texts;
+    if(!Array.isArray(arr)) arr = g.content;
 
-      if(items.length) groups.push({ name, items });
-    });
-  }
+    const items = pickItems(arr);
+    if(items.length) groups.push({ name: normalizeGroupName(name), items });
+  });
 
   return groups.length ? groups : null;
 }
 
-/* 扁平提取（原逻辑，保留作为回退） */
+/* 扁平提取（回退用，兼容无分组的旧格式） */
 function parseCardPack(raw){
   const results=[];
   const seen=new Set();
   function clean(s){ return typeof s==='string'?s.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim():''; }
   function add(s){ const t=clean(s); if(!t||seen.has(t)) return; seen.add(t); results.push(t); }
-  const TEXT_KEYS=new Set(['text','content','message','reply','answer','sentence','value','msg','card','line','phrase','quote','say','speech','body','dialogue','description','content_text']);
-  const WRAPPER_KEYS=new Set(['cards','texts','messages','list','data','items','cardlist','card_list','cardpack','pack','sentences','replies','answers','words','lines','phrases','quotes','dialogues','chats','dialog','customreplies','custom_replies']);
+
+  const TEXT_KEYS=new Set([
+    'text','content','message','reply','answer','sentence','value','msg',
+    'card','line','phrase','quote','say','speech','body','dialogue',
+    'description','content_text','items'
+  ]);
+  const WRAPPER_KEYS=new Set([
+    'cards','texts','messages','list','data','items','cardlist','card_list',
+    'cardpack','pack','sentences','replies','answers','words','lines',
+    'phrases','quotes','dialogues','chats','dialog',
+    'customreplies','custom_replies','customreplygroups'
+  ]);
+
   function fromArray(arr, depth){
     if(!Array.isArray(arr) || depth>10) return;
     arr.forEach(it=>{
@@ -4017,11 +4042,16 @@ function parseCardPack(raw){
       }
     }
   }
+
   if(Array.isArray(raw)) fromArray(raw, 0);
   else if(raw && typeof raw==='object'){
-    /* 优先扫 customReplies / replies */
-    if(Array.isArray(raw.customReplies)) raw.customReplies.forEach(it=>{ if(typeof it==='string') add(it); });
-    if(Array.isArray(raw.replies))       raw.replies.forEach(it=>{ if(typeof it==='string') add(it); });
+    /* customReplies 优先 */
+    if(Array.isArray(raw.customReplies)){
+      raw.customReplies.forEach(it=>{ if(typeof it==='string') add(it); });
+    }
+    if(Array.isArray(raw.replies)){
+      raw.replies.forEach(it=>{ if(typeof it==='string') add(it); });
+    }
     let found=false;
     const keys=Object.keys(raw);
     for(let i=0;i<keys.length;i++){
@@ -4033,37 +4063,41 @@ function parseCardPack(raw){
       }
     }
     if(!found) fromObject(raw, 0);
-  } else if(typeof raw==='string') add(raw);
-  return results.length?results:null;
+  } else if(typeof raw==='string'){
+    add(raw);
+  }
+
+  return results.length ? results : null;
 }
 
 function importCardPack(file){
-  const c=editingChar();
+  const c = editingChar();
   if(!c){ toast('先打开一个角色'); return; }
 
-  const reader=new FileReader();
-  reader.onload=()=>{
+  const reader = new FileReader();
+  reader.onload = () => {
     let raw;
-    try{ raw=JSON.parse(String(reader.result)); }
+    try{ raw = JSON.parse(String(reader.result)); }
     catch(e){ toast('导入失败：不是有效 JSON'); return; }
 
     /* ——— 1. 优先按分组导入 ——— */
     const grouped = parseCardPackWithGroups(raw);
     if(grouped && grouped.length){
-      const exist=new Set(c.cards.map(x=>x.text));
-      const now=Date.now();
-      let totalAdded=0, totalSkipped=0, offset=0;
-      const importedNames=[];
+      const exist = new Set(c.cards.map(x=>x.text));
+      const now = Date.now();
+      let totalAdded = 0, totalSkipped = 0, offset = 0;
+      const importedNames = [];
 
       grouped.forEach(g=>{
-        const groupName=normalizeGroupName(g.name);
+        const groupName = normalizeGroupName(g.name);
+
         /* 确保分组已注册 */
         if(!c.groups.includes(groupName)){
           c.groups.push(groupName);
-          c.groups=sortGroupNames(c.groups);
+          c.groups = sortGroupNames(c.groups);
         }
 
-        let added=0, skipped=0;
+        let added = 0, skipped = 0;
         g.items.forEach(t=>{
           if(exist.has(t)){ skipped++; return; }
           exist.add(t);
@@ -4093,38 +4127,37 @@ function importCardPack(file){
       renderCards();
       updateBadges();
 
-      /* 组织提示语 */
-      let msg='已按 '+importedNames.length+' 个分组导入 '+totalAdded+' 张';
-      if(importedNames.length<=3){
+      let msg = '已按 ' + importedNames.length + ' 个分组导入 ' + totalAdded + ' 张';
+      if(importedNames.length <= 3){
         msg += '：' + importedNames.join('、');
       } else {
         msg += '：' + importedNames.slice(0,3).join('、') + ' 等';
       }
-      if(totalSkipped) msg += '（跳过重复 '+totalSkipped+' 张）';
+      if(totalSkipped) msg += '（跳过重复 ' + totalSkipped + ' 张）';
       toast(msg);
       return;
     }
 
     /* ——— 2. 回退到扁平导入 ——— */
-    const texts=parseCardPack(raw);
+    const texts = parseCardPack(raw);
     if(!texts || !texts.length){ toast('没找到可用的字卡'); return; }
 
-    let group=DEFAULT_GROUP;
-    if(els.cardGroupSelect && els.cardGroupSelect.value && els.cardGroupSelect.value!=='__new__'){
-      group=normalizeGroupName(els.cardGroupSelect.value);
+    let group = DEFAULT_GROUP;
+    if(els.cardGroupSelect && els.cardGroupSelect.value && els.cardGroupSelect.value !== '__new__'){
+      group = normalizeGroupName(els.cardGroupSelect.value);
     }
     if(!c.groups.includes(group)){
       c.groups.push(group);
-      c.groups=sortGroupNames(c.groups);
+      c.groups = sortGroupNames(c.groups);
     }
 
-    const exist=new Set(c.cards.map(x=>x.text));
-    const now=Date.now();
-    let added=0, skipped=0;
-    texts.forEach((t,i)=>{
+    const exist = new Set(c.cards.map(x=>x.text));
+    const now = Date.now();
+    let added = 0, skipped = 0;
+    texts.forEach((t, i)=>{
       if(exist.has(t)){ skipped++; return; }
       exist.add(t);
-      c.cards.push({ id:uid(), text:t, group, enabled:true, createdAt:now+i });
+      c.cards.push({ id: uid(), text: t, group, enabled: true, createdAt: now + i });
       added++;
     });
 
@@ -4135,12 +4168,13 @@ function importCardPack(file){
     renderGroupSelect();
     renderCards();
 
-    let msg='已导入 '+added+' 张到「'+group+'」';
-    if(skipped) msg+='，跳过 '+skipped+' 张重复';
+    let msg = '已导入 ' + added + ' 张到「' + group + '」';
+    if(skipped) msg += '，跳过 ' + skipped + ' 张重复';
     toast(msg);
   };
-  reader.onerror=()=>toast('文件读取失败');
-  reader.readAsText(file,'utf-8');
+
+  reader.onerror = () => toast('文件读取失败');
+  reader.readAsText(file, 'utf-8');
 }
 function importCardPack(file){
   const c=editingChar();
