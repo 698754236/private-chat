@@ -71,7 +71,7 @@ button{ font-family: inherit; }
 ::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.14); border-radius:3px; }
 ::-webkit-scrollbar-track{ background:transparent; }
 
-button, .btn, .icon-btn, .tab, .send-btn, .bg-swatch, .card-del{
+button, .btn, .icon-btn, .tab, .send-btn, .bg-swatch, .card-del, .group-tab{
   touch-action: manipulation;
 }
 
@@ -706,7 +706,7 @@ input:focus, textarea:focus{
 .switch-row input[type=checkbox]:checked::after{ transform: translateX(18px); }
 
 /* ============================================================
-   6. 头像设置器（新增）
+   6. 头像设置器
    ============================================================ */
 .avatar-setter{
   display: flex;
@@ -761,7 +761,6 @@ input:focus, textarea:focus{
   margin: 0;
 }
 
-/* 头像图片统一显示 */
 .avatar img,
 .splash-avatar img,
 .avatar-preview img{
@@ -774,7 +773,87 @@ input:focus, textarea:focus{
 }
 
 /* ============================================================
-   7. 字卡包导入（新增）
+   7. 分组标签栏（新增）
+   ============================================================ */
+.group-tabs{
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 10px;
+  margin-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.group-tabs::-webkit-scrollbar{ display: none; }
+
+.group-tab{
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 13px;
+  border: 1px solid #e5e5e5;
+  border-radius: 17px;
+  background: #fafafa;
+  color: #777;
+  font-size: 12.5px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .18s, color .18s, border-color .18s;
+  -webkit-tap-highlight-color: transparent;
+}
+.group-tab:active{ transform: scale(.96); }
+.group-tab .group-count{
+  font-size: 11px;
+  opacity: .7;
+}
+.group-tab.active{
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 500;
+  box-shadow: 0 3px 9px rgba(7,193,96,.25);
+}
+.group-tab.active .group-count{
+  opacity: .85;
+}
+
+/* 编辑器分组行 */
+.editor-group-row{
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 9px;
+}
+.editor-group-row .group-label{
+  flex: none;
+  font-size: 12.5px;
+  color: #777;
+  font-weight: 500;
+}
+.editor-group-row input{
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 14px;
+  background: #fff;
+  outline: none;
+  transition: border-color .18s, box-shadow .18s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.editor-group-row input:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(7,193,96,.1);
+}
+
+/* ============================================================
+   8. 字卡包导入
    ============================================================ */
 .pack-import{
   display: flex;
@@ -788,7 +867,7 @@ input:focus, textarea:focus{
 }
 .pack-import .pack-hint{
   font-size: 11.5px;
-  line-height: 1.5;
+  line-height: 1.6;
   color: #6da588;
   flex: 1;
   min-width: 0;
@@ -799,7 +878,7 @@ input:focus, textarea:focus{
 }
 
 /* ============================================================
-   8. 字卡编辑器 & 列表
+   9. 字卡编辑器 & 列表
    ============================================================ */
 .card-editor{
   background: #fafafa;
@@ -869,7 +948,7 @@ input:focus, textarea:focus{
 .card-item{
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 8px;
   padding: 11px 12px;
   margin-bottom: 8px;
   background: #fafafa;
@@ -887,6 +966,19 @@ input:focus, textarea:focus{
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: anywhere;
+}
+.card-group-tag{
+  flex: none;
+  font-size: 10.5px;
+  color: #7ba98e;
+  background: #eef8f1;
+  padding: 3px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+  margin-top: 2px;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .card-del{
   flex: none;
@@ -911,7 +1003,7 @@ input:focus, textarea:focus{
 }
 
 /* ============================================================
-   9. 聊天背景选择器
+   10. 聊天背景选择器
    ============================================================ */
 .bg-picker{
   display: grid;
@@ -936,7 +1028,7 @@ input:focus, textarea:focus{
 }
 
 /* ============================================================
-   10. 本地保存状态
+   11. 本地保存状态
    ============================================================ */
 .save-status{
   display: flex;
@@ -965,7 +1057,7 @@ input:focus, textarea:focus{
 }
 
 /* ============================================================
-   11. Toast
+   12. Toast
    ============================================================ */
 #toast{
   position: fixed;
@@ -989,7 +1081,7 @@ input:focus, textarea:focus{
 #toast.show{ opacity: 1; transform: translate(-50%, 0); }
 
 /* ============================================================
-   12. 手机端适配
+   13. 手机端适配
    ============================================================ */
 @media (max-width: 640px){
   #app{ max-width: 100%; box-shadow: none; }
@@ -1028,6 +1120,7 @@ input:focus, textarea:focus{
 
   .card-item{ padding: 12px 12px; }
   .card-del{ width: 32px; height: 32px; font-size: 13px; }
+  .card-group-tag{ max-width: 68px; }
 
   .bg-picker{ gap: 8px; }
 
@@ -1054,6 +1147,7 @@ input:focus, textarea:focus{
   .head-name{ font-size: 15.5px; }
   .send-btn{ padding: 10px 13px; font-size: 14.5px; }
   .tab{ font-size: 13px; }
+  .group-tab{ padding: 6px 11px; font-size: 12px; }
 }
 
 @media (min-width: 641px) and (max-width: 1024px){
@@ -1139,14 +1233,26 @@ input:focus, textarea:focus{
     <!-- ---------- 字卡库 ---------- -->
     <section class="tab-pane active" data-pane="cards">
       <p class="hint">
-        在这里写下 TA 可能会说的话。聊天时，TA 的每一句回复都会从下面的字卡里随机抽取。
+        在这里写下 TA 可能会说的话。<b>点上面的分组标签切换，聊天时会从选中的分组里随机抽取。</b>
       </p>
+
+      <!-- 分组标签栏 -->
+      <div class="group-tabs" id="groupTabs"></div>
 
       <div class="card-editor">
         <label class="editor-label" for="cardInput">✍️ 写一句话给 TA</label>
         <textarea id="cardInput" rows="4"
           placeholder="例如：在的呀，怎么啦？&#10;&#10;（多行输入时，每行保存为一张独立字卡）"
           autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+
+        <div class="editor-group-row">
+          <span class="group-label">分组</span>
+          <input type="text" id="cardGroupInput" list="groupList"
+            placeholder="默认" maxlength="20" autocorrect="off"
+            autocapitalize="off" spellcheck="false">
+          <datalist id="groupList"></datalist>
+        </div>
+
         <div class="editor-bar">
           <span class="editor-count" id="inputCount">0 字</span>
           <button class="btn primary" id="addCards">保存到字卡库</button>
@@ -1156,8 +1262,10 @@ input:focus, textarea:focus{
       <div class="pack-import">
         <button type="button" class="btn ghost" id="importCardPackBtn">📦 导入字卡包</button>
         <span class="pack-hint">
-          支持 JSON：<br>
-          ["句子1", "句子2"] 或 {"cards": [...]}
+          支持 JSON 格式：<br>
+          ["句子1", "句子2"]<br>
+          [{"text":"句子1"}]<br>
+          {"cards":[...]} / {"data":{...}}
         </span>
         <input type="file" id="importCardPackFile" accept=".json,application/json" hidden>
       </div>
@@ -1312,15 +1420,12 @@ function shuffle(arr) {
   return arr;
 }
 
-/** 判断一个头像值是否是图片（data URL） */
 function isImageSource(s) {
   return typeof s === 'string' && s.indexOf('data:image/') === 0;
 }
 
-/** 把头像内容（emoji 或图片）渲染进指定元素 */
 function renderAvatarInto(el, source) {
   if (!el) return;
-  // 清空
   while (el.firstChild) el.removeChild(el.firstChild);
 
   if (!source) return;
@@ -1336,10 +1441,19 @@ function renderAvatarInto(el, source) {
   }
 }
 
+/** 分组名归一化：去掉首尾空白、限制长度、默认「默认」 */
+function normalizeGroupName(name) {
+  let g = (name == null ? '' : String(name)).trim();
+  if (!g) g = '默认';
+  if (g.length > 20) g = g.slice(0, 20);
+  return g;
+}
+
 /* ============================================================
    模块 2 · 数据层
    ============================================================ */
 const STORAGE_KEY = 'private-chat-v1';
+const DEFAULT_GROUP = '默认';
 
 const CHAT_BG_PRESETS = [
   { id: 'default',  name: '浅灰', color: '#ededed' },
@@ -1379,9 +1493,14 @@ function defaultState() {
       delayMax: 2000,
       typing: true,
       bagMode: true,
+      activeGroup: 'all',            /* 当前激活的分组（'all' = 全部） */
     },
     cards: SEED_CARDS.map((text, i) => ({
-      id: uid(), text, enabled: true, createdAt: now + i,
+      id: uid(),
+      text,
+      group: DEFAULT_GROUP,
+      enabled: true,
+      createdAt: now + i,
     })),
     messages: [],
     bag: [],
@@ -1406,19 +1525,28 @@ function normalize(raw) {
     lastCardId: typeof raw.lastCardId === 'string' ? raw.lastCardId : null,
   };
 
-  /* 头像兜底：如果是空字符串就用默认 emoji */
   if (!out.settings.myAvatar) out.settings.myAvatar = d.settings.myAvatar;
   if (!out.settings.taAvatar) out.settings.taAvatar = d.settings.taAvatar;
+  if (typeof out.settings.activeGroup !== 'string' || !out.settings.activeGroup) {
+    out.settings.activeGroup = 'all';
+  }
 
   if (Array.isArray(raw.cards)) {
     out.cards = raw.cards.map((c) => {
       if (typeof c === 'string') {
-        return { id: uid(), text: c, enabled: true, createdAt: Date.now() };
+        return {
+          id: uid(),
+          text: c,
+          group: DEFAULT_GROUP,
+          enabled: true,
+          createdAt: Date.now(),
+        };
       }
       if (c && typeof c.text === 'string') {
         return {
           id: c.id || uid(),
           text: c.text,
+          group: normalizeGroupName(c.group),
           enabled: c.enabled !== false,
           createdAt: c.createdAt || Date.now(),
         };
@@ -1447,6 +1575,12 @@ function normalize(raw) {
 
   if (!CHAT_BG_PRESETS.some((p) => p.id === out.settings.chatBg)) {
     out.settings.chatBg = 'default';
+  }
+
+  /* 如果当前激活的分组在字卡里不存在了，回退到全部 */
+  if (out.settings.activeGroup !== 'all') {
+    const exists = out.cards.some((c) => c.group === out.settings.activeGroup);
+    if (!exists) out.settings.activeGroup = 'all';
   }
 
   return out;
@@ -1489,10 +1623,16 @@ function flushSave() {
 }
 
 /* ============================================================
-   模块 3 · 字卡抽取引擎
+   模块 3 · 字卡抽取引擎（按分组过滤）
    ============================================================ */
 function cardPool() {
-  return state.cards.filter((c) => c.enabled !== false && c.text && c.text.trim());
+  const active = state.settings.activeGroup || 'all';
+  return state.cards.filter((c) => {
+    if (c.enabled === false) return false;
+    if (!c.text || !c.text.trim()) return false;
+    if (active !== 'all' && c.group !== active) return false;
+    return true;
+  });
 }
 
 function pickCard() {
@@ -1548,11 +1688,14 @@ function cacheEls() {
   els.openCards  = $('#openCards');
   els.closePanel = $('#closePanel');
 
-  els.cardInput  = $('#cardInput');
-  els.cardList   = $('#cardList');
-  els.cardCount  = $('#cardCount');
-  els.inputCount = $('#inputCount');
-  els.addCards   = $('#addCards');
+  els.cardInput      = $('#cardInput');
+  els.cardList       = $('#cardList');
+  els.cardCount      = $('#cardCount');
+  els.inputCount     = $('#inputCount');
+  els.addCards       = $('#addCards');
+  els.groupTabs      = $('#groupTabs');
+  els.cardGroupInput = $('#cardGroupInput');
+  els.groupList      = $('#groupList');
 
   els.setMyName   = $('#setMyName');
   els.setMyAvatar = $('#setMyAvatar');
@@ -1573,7 +1716,6 @@ function cacheEls() {
   els.clearCardsBtn = $('#clearCardsBtn');
   els.stats         = $('#stats');
 
-  /* 头像设置器 */
   els.myAvatarPreview   = $('#myAvatarPreview');
   els.myAvatarFile      = $('#myAvatarFile');
   els.myAvatarUploadBtn = $('#myAvatarUploadBtn');
@@ -1584,11 +1726,9 @@ function cacheEls() {
   els.taAvatarUploadBtn = $('#taAvatarUploadBtn');
   els.taAvatarClearBtn  = $('#taAvatarClearBtn');
 
-  /* 字卡包导入 */
   els.importCardPackBtn  = $('#importCardPackBtn');
   els.importCardPackFile = $('#importCardPackFile');
 
-  /* Splash */
   els.splash       = $('#splash');
   els.splashAvatar = $('#splashAvatar');
   els.splashName   = $('#splashName');
@@ -1726,7 +1866,12 @@ function processReplyQueue() {
 
   if (!cardPool().length) {
     replyQueue.length = 0;
-    toast('字卡库是空的，点右上角 ＋ 添加几张吧');
+    const active = state.settings.activeGroup || 'all';
+    if (active !== 'all' && state.cards.length > 0) {
+      toast('分组「' + active + '」里还没有字卡');
+    } else {
+      toast('字卡库是空的，点右上角 ＋ 添加几张吧');
+    }
     return;
   }
 
@@ -1886,10 +2031,8 @@ function estimateSize() {
 }
 
 /* ============================================================
-   模块 12 · 头像上传与处理（新增）
+   模块 12 · 头像上传与处理
    ============================================================ */
-
-/** 把图片文件处理成 256x256 的 JPEG data URL */
 function processAvatarFile(file) {
   return new Promise((resolve, reject) => {
     if (!file) { reject(new Error('没有选择文件')); return; }
@@ -1918,7 +2061,6 @@ function processAvatarFile(file) {
 
           const ctx = canvas.getContext('2d');
 
-          // 白色打底，避免 PNG 透明区域变黑
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, SIZE, SIZE);
 
@@ -1952,7 +2094,6 @@ function processAvatarFile(file) {
   });
 }
 
-/** 头像刷新回调集合（导入备份后也要同步刷新） */
 const avatarRefreshers = [];
 
 function refreshAllAvatars() {
@@ -1961,7 +2102,6 @@ function refreshAllAvatars() {
   });
 }
 
-/** 绑定一组头像设置器（我的 / TA） */
 function bindAvatarControl(cfg) {
   const {
     key, previewEl, fileEl, uploadBtn, clearBtn,
@@ -1976,14 +2116,13 @@ function bindAvatarControl(cfg) {
     }
   }
 
-  /* 上传图片 */
   uploadBtn.addEventListener('click', () => {
     try { fileEl.click(); } catch (e) {}
   });
 
   fileEl.addEventListener('change', (e) => {
     const file = e.target.files && e.target.files[0];
-    e.target.value = '';           // 允许重复选同一个文件
+    e.target.value = '';
     if (!file) return;
 
     processAvatarFile(file).then((dataUrl) => {
@@ -1998,7 +2137,6 @@ function bindAvatarControl(cfg) {
     });
   });
 
-  /* 恢复默认 emoji */
   clearBtn.addEventListener('click', () => {
     state.settings[key] = fallback;
     saveState();
@@ -2008,7 +2146,6 @@ function bindAvatarControl(cfg) {
     toast('已恢复默认头像');
   });
 
-  /* 手动输入 emoji */
   if (emojiInput) {
     emojiInput.addEventListener('input', () => {
       const v = emojiInput.value.trim();
@@ -2024,7 +2161,6 @@ function bindAvatarControl(cfg) {
   refresh();
 }
 
-/** 如果加载页还在显示，同步 TA 的头像 */
 function updateSplashAvatar() {
   if (!els.splash || !document.body.contains(els.splash)) return;
 
@@ -2037,7 +2173,118 @@ function updateSplashAvatar() {
 }
 
 /* ============================================================
-   模块 13 · 字卡库
+   模块 13 · 分组标签栏
+   ============================================================ */
+
+/** 收集所有分组名和计数 */
+function collectGroups() {
+  const map = new Map();
+  state.cards.forEach((c) => {
+    const g = c.group || DEFAULT_GROUP;
+    map.set(g, (map.get(g) || 0) + 1);
+  });
+  return map;
+}
+
+/** 排序分组名：默认分组优先，其余按拼音/字符顺序 */
+function sortGroupNames(names) {
+  return names.slice().sort((a, b) => {
+    if (a === DEFAULT_GROUP) return -1;
+    if (b === DEFAULT_GROUP) return 1;
+    return a.localeCompare(b, 'zh-CN');
+  });
+}
+
+/** 渲染分组标签栏 */
+function renderGroupTabs() {
+  if (!els.groupTabs) return;
+
+  /* 校验当前分组是否还存在 */
+  const active0 = state.settings.activeGroup || 'all';
+  if (active0 !== 'all' && !state.cards.some((c) => (c.group || DEFAULT_GROUP) === active0)) {
+    state.settings.activeGroup = 'all';
+    saveState();
+  }
+
+  const active = state.settings.activeGroup || 'all';
+  const groups = collectGroups();
+  const frag = document.createDocumentFragment();
+
+  /* "全部" 标签 */
+  const allTab = document.createElement('button');
+  allTab.type = 'button';
+  allTab.className = 'group-tab' + (active === 'all' ? ' active' : '');
+  allTab.dataset.group = 'all';
+  const allName = document.createElement('span');
+  allName.textContent = '全部';
+  const allCount = document.createElement('span');
+  allCount.className = 'group-count';
+  allCount.textContent = state.cards.length;
+  allTab.append(allName, allCount);
+  frag.appendChild(allTab);
+
+  /* 各分组标签 */
+  sortGroupNames(Array.from(groups.keys())).forEach((g) => {
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = 'group-tab' + (active === g ? ' active' : '');
+    tab.dataset.group = g;
+
+    const nameEl = document.createElement('span');
+    nameEl.textContent = g;
+
+    const countEl = document.createElement('span');
+    countEl.className = 'group-count';
+    countEl.textContent = groups.get(g);
+
+    tab.append(nameEl, countEl);
+    frag.appendChild(tab);
+  });
+
+  els.groupTabs.replaceChildren(frag);
+}
+
+/** 同步编辑器里的分组输入框（跟随当前激活分组） */
+function syncEditorGroup() {
+  if (!els.cardGroupInput) return;
+  const active = state.settings.activeGroup || 'all';
+  if (active !== 'all') {
+    els.cardGroupInput.value = active;
+  } else if (!els.cardGroupInput.value.trim()) {
+    els.cardGroupInput.value = DEFAULT_GROUP;
+  }
+}
+
+/** 更新 datalist，让分组输入框支持下拉选择 */
+function renderGroupDatalist() {
+  if (!els.groupList) return;
+
+  const names = new Set([DEFAULT_GROUP]);
+  state.cards.forEach((c) => names.add(c.group || DEFAULT_GROUP));
+
+  const frag = document.createDocumentFragment();
+  sortGroupNames(Array.from(names)).forEach((g) => {
+    const opt = document.createElement('option');
+    opt.value = g;
+    frag.appendChild(opt);
+  });
+  els.groupList.replaceChildren(frag);
+}
+
+/** 切换分组 */
+function setActiveGroup(group) {
+  const g = (group === 'all') ? 'all' : normalizeGroupName(group);
+  state.settings.activeGroup = g;
+  state.bag = [];              /* 换了分组，抽取袋重置 */
+  saveState();
+
+  renderGroupTabs();
+  renderCards();
+  syncEditorGroup();
+}
+
+/* ============================================================
+   模块 14 · 字卡库
    ============================================================ */
 function updateInputCount() {
   const n = els.cardInput.value.trim().length;
@@ -2045,18 +2292,33 @@ function updateInputCount() {
 }
 
 function renderCards() {
-  els.cardCount.textContent = state.cards.length + ' 张';
+  const active = state.settings.activeGroup || 'all';
+  const filtered = active === 'all'
+    ? state.cards
+    : state.cards.filter((c) => (c.group || DEFAULT_GROUP) === active);
 
-  if (!state.cards.length) {
-    els.cardList.innerHTML =
-      '<div class="empty">还没有字卡<br>在上面写下 TA 可能会说的话吧</div>';
+  if (active === 'all') {
+    els.cardCount.textContent = state.cards.length + ' 张';
+  } else {
+    els.cardCount.textContent = filtered.length + ' / ' + state.cards.length + ' 张';
+  }
+
+  if (!filtered.length) {
+    if (active === 'all') {
+      els.cardList.innerHTML =
+        '<div class="empty">还没有字卡<br>在上面写下 TA 可能会说的话吧</div>';
+    } else {
+      els.cardList.innerHTML =
+        '<div class="empty">分组「' + escapeHtml(active) + '」里还没有字卡<br>在上面的输入框里写一句吧</div>';
+    }
     updateStats();
     return;
   }
 
+  const showGroupTag = (active === 'all');
   const frag = document.createDocumentFragment();
 
-  state.cards.forEach((card) => {
+  filtered.forEach((card) => {
     const item = document.createElement('div');
     item.className = 'card-item';
     item.dataset.id = card.id;
@@ -2072,12 +2334,31 @@ function renderCards() {
     del.setAttribute('aria-label', '删除');
     del.textContent = '✕';
 
-    item.append(text, del);
+    if (showGroupTag) {
+      const tag = document.createElement('span');
+      tag.className = 'card-group-tag';
+      tag.textContent = card.group || DEFAULT_GROUP;
+      tag.title = card.group || DEFAULT_GROUP;
+      item.append(text, tag, del);
+    } else {
+      item.append(text, del);
+    }
+
     frag.appendChild(item);
   });
 
   els.cardList.replaceChildren(frag);
   updateStats();
+}
+
+/** 简单转义（只用于 innerHTML 里的分组名） */
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function addCardsFromInput() {
@@ -2088,6 +2369,9 @@ function addCardsFromInput() {
   const lines = trimmed.split('\n').map((s) => s.trim()).filter(Boolean);
   if (!lines.length) { toast('先写点内容吧'); return; }
 
+  /* 从输入框取分组，为空则用「默认」 */
+  const group = normalizeGroupName(els.cardGroupInput ? els.cardGroupInput.value : '');
+
   const now = Date.now();
   const exist = new Set(state.cards.map((c) => c.text));
 
@@ -2095,7 +2379,13 @@ function addCardsFromInput() {
   lines.forEach((line, i) => {
     if (exist.has(line)) { skipped++; return; }
     exist.add(line);
-    state.cards.push({ id: uid(), text: line, enabled: true, createdAt: now + i });
+    state.cards.push({
+      id: uid(),
+      text: line,
+      group: group,
+      enabled: true,
+      createdAt: now + i,
+    });
     added++;
   });
 
@@ -2103,11 +2393,17 @@ function addCardsFromInput() {
   updateInputCount();
 
   saveState();
+  renderGroupTabs();
+  renderGroupDatalist();
   renderCards();
 
-  if (added && skipped) toast('已保存 ' + added + ' 张，跳过 ' + skipped + ' 张重复的');
-  else if (added)       toast('已保存 ' + added + ' 张字卡');
-  else                  toast('这些内容已经存在啦');
+  if (added && skipped) {
+    toast('已保存 ' + added + ' 张到「' + group + '」，跳过 ' + skipped + ' 张重复的');
+  } else if (added) {
+    toast('已保存 ' + added + ' 张到「' + group + '」');
+  } else {
+    toast('这些内容已经存在啦');
+  }
 }
 
 function removeCard(id) {
@@ -2116,52 +2412,124 @@ function removeCard(id) {
   state.cards.splice(idx, 1);
   state.bag = state.bag.filter((x) => x !== id);
   saveState();
+  renderGroupTabs();
+  renderGroupDatalist();
   renderCards();
   toast('已删除');
 }
 
 /* ============================================================
-   模块 14 · 字卡包导入（新增）
+   模块 15 · 字卡包导入（通用解析器）
    ------------------------------------------------------------
-   支持的 JSON 格式：
-     1) ["句子1", "句子2"]
-     2) [{"text": "句子1"}, {"text": "句子2"}]
-     3) {"cards": [...]}  /  {"texts": [...]}
-        {"messages": [...]} / {"list": [...]} / {"data": [...]}
+   兼容格式：
+     - ["句子1","句子2"]
+     - [{"text":"..."}, {"content":"..."}, {"message":"..."}]
+     - {"cards":[...]} / {"texts":[...]} / {"data":{...}} / {"list":[...]}
+     - 嵌套结构
+   所有导入的字卡会归入「当前编辑器分组」或「默认」
    ============================================================ */
 function parseCardPack(raw) {
-  let arr = null;
+  const results = [];
+  const seen = new Set();
 
-  if (Array.isArray(raw)) {
-    arr = raw;
-  } else if (raw && typeof raw === 'object') {
-    if (Array.isArray(raw.cards))         arr = raw.cards;
-    else if (Array.isArray(raw.texts))    arr = raw.texts;
-    else if (Array.isArray(raw.messages)) arr = raw.messages;
-    else if (Array.isArray(raw.list))     arr = raw.list;
-    else if (Array.isArray(raw.data))     arr = raw.data;
+  function cleanText(s) {
+    if (typeof s !== 'string') return '';
+    return s.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
   }
 
-  if (!arr) return null;
+  function addText(s) {
+    const t = cleanText(s);
+    if (!t) return;
+    if (seen.has(t)) return;
+    seen.add(t);
+    results.push(t);
+  }
 
-  const out = [];
-  arr.forEach((item) => {
-    let text = '';
+  const TEXT_KEYS = new Set([
+    'text', 'content', 'message', 'reply', 'answer', 'sentence',
+    'value', 'msg', 'card', 'line', 'phrase', 'quote', 'say',
+    'speech', 'body', 'dialogue', 'description', 'content_text'
+  ]);
 
-    if (typeof item === 'string') {
-      text = item;
-    } else if (item && typeof item.text === 'string') {
-      text = item.text;
-    } else if (item && typeof item.content === 'string') {
-      text = item.content;
+  const WRAPPER_KEYS = new Set([
+    'cards', 'texts', 'messages', 'list', 'data', 'items', 'cardlist',
+    'card_list', 'cardpack', 'pack', 'sentences', 'replies', 'answers',
+    'words', 'lines', 'phrases', 'quotes', 'dialogues', 'chats', 'dialog'
+  ]);
+
+  function extractFromArray(arr, depth) {
+    if (!Array.isArray(arr) || depth > 10) return;
+    arr.forEach((item) => {
+      if (typeof item === 'string') {
+        addText(item);
+      } else if (Array.isArray(item)) {
+        extractFromArray(item, depth + 1);
+      } else if (item && typeof item === 'object') {
+        extractFromObject(item, depth + 1);
+      }
+    });
+  }
+
+  function extractFromObject(obj, depth) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj) || depth > 10) return;
+
+    const keys = Object.keys(obj);
+
+    for (let i = 0; i < keys.length; i++) {
+      const lower = keys[i].toLowerCase();
+      if (TEXT_KEYS.has(lower)) {
+        const val = obj[keys[i]];
+        if (typeof val === 'string') {
+          addText(val);
+          return;
+        }
+        if (Array.isArray(val)) {
+          extractFromArray(val, depth + 1);
+          return;
+        }
+      }
     }
 
-    // 统一换行、去掉首尾空白
-    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-    if (text) out.push(text);
-  });
+    for (let i = 0; i < keys.length; i++) {
+      const lower = keys[i].toLowerCase();
+      if (WRAPPER_KEYS.has(lower)) {
+        const val = obj[keys[i]];
+        if (Array.isArray(val)) {
+          extractFromArray(val, depth + 1);
+        } else if (val && typeof val === 'object') {
+          extractFromObject(val, depth + 1);
+        }
+      }
+    }
+  }
 
-  return out;
+  if (Array.isArray(raw)) {
+    extractFromArray(raw, 0);
+  } else if (raw && typeof raw === 'object') {
+    let foundWrapper = false;
+    const keys = Object.keys(raw);
+    for (let i = 0; i < keys.length; i++) {
+      const lower = keys[i].toLowerCase();
+      if (WRAPPER_KEYS.has(lower)) {
+        const val = raw[keys[i]];
+        if (Array.isArray(val)) {
+          extractFromArray(val, 0);
+          foundWrapper = true;
+        } else if (val && typeof val === 'object') {
+          extractFromObject(val, 0);
+          foundWrapper = true;
+        }
+      }
+    }
+
+    if (!foundWrapper) {
+      extractFromObject(raw, 0);
+    }
+  } else if (typeof raw === 'string') {
+    addText(raw);
+  }
+
+  return results.length ? results : null;
 }
 
 function importCardPack(file) {
@@ -2184,6 +2552,9 @@ function importCardPack(file) {
       return;
     }
 
+    /* 导入到当前编辑器里的分组 */
+    let group = normalizeGroupName(els.cardGroupInput ? els.cardGroupInput.value : '');
+
     const exist = new Set(state.cards.map((c) => c.text));
     const now = Date.now();
 
@@ -2194,6 +2565,7 @@ function importCardPack(file) {
       state.cards.push({
         id: uid(),
         text: t,
+        group: group,
         enabled: true,
         createdAt: now + i,
       });
@@ -2206,9 +2578,11 @@ function importCardPack(file) {
     }
 
     saveState();
+    renderGroupTabs();
+    renderGroupDatalist();
     renderCards();
 
-    let msg = '已导入 ' + added + ' 张字卡';
+    let msg = '已导入 ' + added + ' 张到「' + group + '」';
     if (skipped) msg += '，跳过 ' + skipped + ' 张重复的';
     toast(msg);
   };
@@ -2218,7 +2592,7 @@ function importCardPack(file) {
 }
 
 /* ============================================================
-   模块 15 · 外观设置
+   模块 16 · 外观设置
    ============================================================ */
 function syncSettingsUI() {
   const s = state.settings;
@@ -2226,7 +2600,6 @@ function syncSettingsUI() {
   els.setMyName.value = s.myName;
   els.setTaName.value = s.taName;
 
-  // 头像输入框：如果是图片则留空
   els.setMyAvatar.value = isImageSource(s.myAvatar) ? '' : s.myAvatar;
   els.setTaAvatar.value = isImageSource(s.taAvatar) ? '' : s.taAvatar;
 
@@ -2235,12 +2608,10 @@ function syncSettingsUI() {
   els.setTyping.checked = s.typing !== false;
   els.setBag.checked    = s.bagMode !== false;
 
-  // 同步头像预览
   refreshAllAvatars();
 }
 
 function bindSettingsInputs() {
-  /* 昵称 */
   els.setMyName.addEventListener('input', () => {
     state.settings.myName = els.setMyName.value;
     saveState();
@@ -2253,7 +2624,6 @@ function bindSettingsInputs() {
     updateSplashAvatar();
   });
 
-  /* 延迟 */
   els.setDelayMin.addEventListener('input', () => {
     state.settings.delayMin = clamp(Number(els.setDelayMin.value) || 0, 0, 60000);
     saveState();
@@ -2264,7 +2634,6 @@ function bindSettingsInputs() {
     saveState();
   });
 
-  /* 开关 */
   els.setTyping.addEventListener('change', () => {
     state.settings.typing = els.setTyping.checked;
     saveState();
@@ -2276,7 +2645,6 @@ function bindSettingsInputs() {
     saveState();
   });
 
-  /* 聊天背景 */
   if (els.bgPicker) {
     els.bgPicker.addEventListener('click', (e) => {
       const btn = e.target.closest('.bg-swatch');
@@ -2290,7 +2658,6 @@ function bindSettingsInputs() {
     });
   }
 
-  /* 头像设置器：我的 */
   bindAvatarControl({
     key: 'myAvatar',
     previewEl: els.myAvatarPreview,
@@ -2301,7 +2668,6 @@ function bindSettingsInputs() {
     fallback: '🐱',
   });
 
-  /* 头像设置器：TA */
   bindAvatarControl({
     key: 'taAvatar',
     previewEl: els.taAvatarPreview,
@@ -2312,7 +2678,6 @@ function bindSettingsInputs() {
     fallback: '🐰',
   });
 
-  /* 字卡包导入 */
   els.importCardPackBtn.addEventListener('click', () => {
     try { els.importCardPackFile.click(); } catch (e) {}
   });
@@ -2325,7 +2690,7 @@ function bindSettingsInputs() {
 }
 
 /* ============================================================
-   模块 16 · 数据管理
+   模块 17 · 数据管理
    ============================================================ */
 function updateStats() {
   const cards  = state.cards.length;
@@ -2333,14 +2698,19 @@ function updateStats() {
   const myMsgs = state.messages.filter((m) => m.role === 'me').length;
   const taMsgs = msgs - myMsgs;
 
+  /* 分组数量统计 */
+  const groupSet = new Set();
+  state.cards.forEach((c) => groupSet.add(c.group || DEFAULT_GROUP));
+  const groupCount = groupSet.size;
+
   let firstTs = null;
   if (msgs) firstTs = Math.min.apply(null, state.messages.map((m) => m.ts));
 
   const since = firstTs ? new Date(firstTs).toLocaleDateString('zh-CN') : '—';
 
   els.stats.innerHTML =
-    '字卡：<b>' + cards + '</b> 张　·　消息：<b>' + msgs + '</b> 条（我 ' +
-    myMsgs + ' / TA ' + taMsgs + '）<br>' +
+    '字卡：<b>' + cards + '</b> 张（' + groupCount + ' 个分组）<br>' +
+    '消息：<b>' + msgs + '</b> 条（我 ' + myMsgs + ' / TA ' + taMsgs + '）<br>' +
     '最早一条：' + since + '<br>' +
     '占用空间：<b>' + estimateSize() + '</b>';
 }
@@ -2381,6 +2751,8 @@ function importData(file) {
       applyHeader();
       applyChatBg();
       renderAllMessages();
+      renderGroupTabs();
+      renderGroupDatalist();
       renderCards();
       syncSettingsUI();
       updateStats();
@@ -2414,13 +2786,16 @@ function clearCards() {
   state.cards = [];
   state.bag = [];
   state.lastCardId = null;
+  state.settings.activeGroup = 'all';
   saveState();
+  renderGroupTabs();
+  renderGroupDatalist();
   renderCards();
   toast('字卡库已清空');
 }
 
 /* ============================================================
-   模块 17 · 自动保存
+   模块 18 · 自动保存
    ============================================================ */
 function bindAutoSave() {
   window.addEventListener('beforeunload', flushSave);
@@ -2441,7 +2816,7 @@ function bindAutoSave() {
 }
 
 /* ============================================================
-   模块 18 · 视口适配
+   模块 19 · 视口适配
    ============================================================ */
 function setupViewport() {
   const app = els.app;
@@ -2484,13 +2859,12 @@ function setupViewport() {
 }
 
 /* ============================================================
-   模块 19 · 开场加载动画
+   模块 20 · 开场加载动画
    ============================================================ */
 function runSplash() {
   const splash = els.splash;
   if (!splash) return;
 
-  /* 同步 TA 头像与昵称 */
   if (state && state.settings) {
     renderAvatarInto(els.splashAvatar, state.settings.taAvatar || '🐰');
     if (els.splashName) {
@@ -2561,7 +2935,7 @@ function runSplash() {
 }
 
 /* ============================================================
-   模块 20 · 设置面板交互
+   模块 21 · 设置面板交互
    ============================================================ */
 let currentTab = 'cards';
 
@@ -2604,6 +2978,26 @@ function bindPanel() {
     tab.addEventListener('click', () => switchTab(tab.dataset.tab));
   });
 
+  /* ---- 分组标签栏 ---- */
+  els.groupTabs.addEventListener('click', (e) => {
+    const tab = e.target.closest('.group-tab');
+    if (!tab) return;
+    const g = tab.dataset.group;
+    if (!g) return;
+    setActiveGroup(g);
+  });
+
+  /* ---- 编辑器分组输入框：自动记住用户输入 ---- */
+  els.cardGroupInput.addEventListener('change', () => {
+    const g = normalizeGroupName(els.cardGroupInput.value);
+    els.cardGroupInput.value = g;
+  });
+  els.cardGroupInput.addEventListener('blur', () => {
+    const g = normalizeGroupName(els.cardGroupInput.value);
+    els.cardGroupInput.value = g;
+  });
+
+  /* ---- 字卡文本 ---- */
   els.cardInput.addEventListener('input', updateInputCount);
   els.addCards.addEventListener('click', addCardsFromInput);
 
@@ -2614,6 +3008,7 @@ function bindPanel() {
     }
   });
 
+  /* ---- 字卡列表删除 ---- */
   els.cardList.addEventListener('click', (e) => {
     const btn = e.target.closest('.card-del');
     if (!btn) return;
@@ -2621,6 +3016,7 @@ function bindPanel() {
     if (item) removeCard(item.dataset.id);
   });
 
+  /* ---- 数据 ---- */
   els.exportBtn.addEventListener('click', exportData);
   els.importBtn.addEventListener('click', () => els.importFile.click());
 
@@ -2635,7 +3031,7 @@ function bindPanel() {
 }
 
 /* ============================================================
-   模块 21 · Toast
+   模块 22 · Toast
    ============================================================ */
 let toastTimer = null;
 
@@ -2649,7 +3045,7 @@ function toast(message) {
 }
 
 /* ============================================================
-   模块 22 · 窗口尺寸变化时保持消息不错位
+   模块 23 · 窗口尺寸变化时保持消息不错位
    ============================================================ */
 let resizeTimer = null;
 function bindResizeReflow() {
@@ -2675,7 +3071,7 @@ function bindResizeReflow() {
 }
 
 /* ============================================================
-   模块 23 · 启动
+   模块 24 · 启动
    ============================================================ */
 function init() {
   cacheEls();
@@ -2688,7 +3084,10 @@ function init() {
   renderBgPicker();
   applyChatBg();
   renderAllMessages();
+  renderGroupTabs();
+  renderGroupDatalist();
   renderCards();
+  syncEditorGroup();
   updateInputCount();
   syncSettingsUI();
   updateStats();
@@ -2714,7 +3113,7 @@ if (document.readyState === 'loading') {
 }
 
 /* ============================================================
-   模块 24 · 对外扩展接口
+   模块 25 · 对外扩展接口
    ============================================================ */
 const bus = {
   handlers: {},
@@ -2740,21 +3139,40 @@ window.PrivateChat = {
   getState() { return state; },
   save: saveState,
 
-  addCard(text) {
+  /** 添加一张字卡；group 可选，默认「默认」 */
+  addCard(text, group) {
     if (!text || !String(text).trim()) return null;
-    const card = { id: uid(), text: String(text).trim(), enabled: true, createdAt: Date.now() };
+    const card = {
+      id: uid(),
+      text: String(text).trim(),
+      group: normalizeGroupName(group),
+      enabled: true,
+      createdAt: Date.now(),
+    };
     state.cards.push(card);
     saveState();
+    renderGroupTabs();
+    renderGroupDatalist();
     renderCards();
     return card;
   },
 
-  addCards(list) {
+  addCards(list, group) {
     if (!Array.isArray(list)) return [];
-    return list.map((t) => this.addCard(t)).filter(Boolean);
+    return list.map((t) => this.addCard(t, group)).filter(Boolean);
   },
 
   removeCard,
+
+  /** 切换当前激活的分组 */
+  setActiveGroup(group) {
+    setActiveGroup(group);
+  },
+
+  /** 获取当前分组名 */
+  getActiveGroup() {
+    return state.settings.activeGroup || 'all';
+  },
 
   send(text) {
     if (!text || !String(text).trim()) return null;
